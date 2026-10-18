@@ -39,7 +39,7 @@ export default function Settings() {
     <div className="settings-grid">
       <section className="panel"><div className="panel-eyebrow">CONNECTIVITY</div><h3>Upstream sources</h3>
         <div className="setting-row"><div><strong>Ethereum RPC</strong><p>One URL per line. Blank uses the public archive fallbacks. A custom URL can include its own key.</p></div><Pill kind="green">BROWSER</Pill></div>
-        <textarea className="field" aria-label="RPC URLs" value={rpcText} onChange={(e) => setRpcText(e.target.value)} rows={4} />
+        <textarea className="field" data-tour="rpc-list" aria-label="RPC URLs" value={rpcText} onChange={(e) => setRpcText(e.target.value)} rows={4} />
         <div className="feature-actions" style={{ marginTop: 12 }}><button className="btn secondary" type="button" onClick={testRpc}>Test first URL</button><button className="btn primary" type="button" onClick={() => updateSettings({ ...settings, rpcUrls: rpcText.split('\n').map((line) => line.trim()).filter(Boolean) })}>Save RPCs</button></div>
         <p className="panel-desc">{status}</p>
         <div className="setting-row"><div><strong>Blockscout</strong><p>Creation transactions, holder counts and a log-index fallback. Swap math still uses decoded logs.</p></div><Pill kind="blue">OPTIONAL</Pill></div>

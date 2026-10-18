@@ -27,12 +27,12 @@ export default function Bots() {
     <PageHeading eyebrow="RESEARCH / AUTOMATION" title="Understand the Machines Behind the Market." description={`Explainable classes from ${HEURISTIC_VERSION}. A router call by an EOA is assisted execution, not an autonomous bot. These labels are evidence, not an operator identity.`} />
     {settings.demoMode && !active && <DemoBadge />}
     <div className="metrics-grid">
-      <MetricTile label="AUTOMATED GROSS BUY" value={active ? `${formatEth(active.kpis.botBuyWei)} ETH` : '—'} sub="HIGH and MEDIUM evidence" icon={Bot} tone="blue" />
-      <MetricTile label="AUTOMATED GROSS SELL" value={active ? `${formatEth(active.kpis.botSellWei)} ETH` : '—'} sub="Same evidence bands" icon={Bot} tone="red" />
+      <MetricTile helpId="automated-buy" label="AUTOMATED GROSS BUY" value={active ? `${formatEth(active.kpis.botBuyWei)} ETH` : '—'} sub="HIGH and MEDIUM evidence" icon={Bot} tone="blue" />
+      <MetricTile helpId="automated-sell" label="AUTOMATED GROSS SELL" value={active ? `${formatEth(active.kpis.botSellWei)} ETH` : '—'} sub="Same evidence bands" icon={Bot} tone="red" />
       <MetricTile label="ESTIMATED SHARE" value={active?.kpis.botBuyShare === null || !active ? '—' : `${active.kpis.botBuyShare.toFixed(1)}%`} sub="Of valued independent buys" icon={ShieldCheck} tone="green" />
       <MetricTile label="UNCLASSIFIED BUY" value={active?.kpis.bands ? `${formatEth(active.kpis.bands.unknownWei)} ETH` : '—'} sub="Unknown band stays outside the automated total" icon={ShieldCheck} />
     </div>
-    <div className="bots-layout"><div className="bot-cards">{bots.map((bot, index) => <button key={bot.name} onClick={() => setSelected(index)} className={`bot-card ${selected === index ? 'chosen' : ''}`}><span className="bot-icon"><Bot size={19} /></span><span className="bot-card-text"><small>{bot.type}</small><strong>{bot.name}</strong><span>{bot.key}</span></span></button>)}</div>
+    <div className="bots-layout"><div className="bot-cards" data-tour="bot-list">{bots.map((bot, index) => <button key={bot.name} onClick={() => setSelected(index)} className={`bot-card ${selected === index ? 'chosen' : ''}`}><span className="bot-icon"><Bot size={19} /></span><span className="bot-card-text"><small>{bot.type}</small><strong>{bot.name}</strong><span>{bot.key}</span></span></button>)}</div>
       <div className="panel bot-detail"><div className="panel-eyebrow">STRATEGY DEEP DIVE</div><div className="bot-detail-head"><div className="bot-detail-icon"><Bot size={32} /></div><Pill kind={chosen.key === 'Sandwich' ? 'amber' : 'green'}>{chosen.type}</Pill></div><h2>{chosen.name}</h2><p>{chosen.notes}</p>
         <StatProgress label={active ? `Valued buys on ${active.token.symbol}` : 'Indexed evidence'} value={active ? `${formatEth(wei.toString())} ETH` : '—'} percentage={active && BigInt(active.kpis.grossBuyWei) > 0n ? Number((wei * 100n) / BigInt(active.kpis.grossBuyWei)) : 0} />
         <TrendChart trades={matched} label={`${chosen.name} chronology`} />

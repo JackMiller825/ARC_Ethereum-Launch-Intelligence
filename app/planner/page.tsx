@@ -55,7 +55,7 @@ export default function Planner() {
     <div className="planner-layout"><div>
       <section className="panel planner-parameters"><div className="panel-header"><div><div className="panel-eyebrow">01 / LAUNCH ASSUMPTIONS</div><h3>Configure your scenario</h3></div><Pill kind="blue">Editable</Pill></div>
         <div className="parameter-grid">
-          <label>Playbook name<div className="input-with-unit"><input aria-label="Playbook name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></div></label>
+          <label>Playbook name<div className="input-with-unit"><input data-tour="planner-name" aria-label="Playbook name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></div></label>
           <label>Market regime<div className="input-with-unit"><input aria-label="Market regime" value={draft.regime} onChange={(e) => setDraft({ ...draft, regime: e.target.value })} /></div></label>
           <label>ETH-side initial liquidity<div className="input-with-unit"><input type="number" min=".1" step=".1" value={draft.initialEth} onChange={(e) => setDraft({ ...draft, initialEth: Math.max(0.1, Number(e.target.value) || 0.1) })} /><span>ETH</span></div></label>
           <label>Gross buy goal<div className="input-with-unit"><input type="number" min="0" step="1" value={draft.grossBuyGoal} onChange={(e) => setDraft({ ...draft, grossBuyGoal: Math.max(0, Number(e.target.value) || 0) })} /><span>ETH</span></div></label>

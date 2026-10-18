@@ -1,11 +1,12 @@
 "use client";
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { versionMismatch } from '@/lib/analytics/version-check';
 import { BASE_PATH, BUILD_TIME, COMMIT_SHA, shortSha } from '@/lib/build-info';
+import { TourDock } from './tour';
 import { WorkspaceProvider, useWorkspace } from './workspace';
-import { Activity, Bell, Bot, ChevronRight, History, LayoutDashboard, Menu, Search, Settings2, Target, Wallet, X } from './icons';
+import { Activity, Bell, BookOpen, Bot, ChevronRight, CircleHelp, History, LayoutDashboard, Menu, Search, Settings2, Target, Wallet, X } from './icons';
 
 function VersionNotice() {
   const [stale, setStale] = useState('');
@@ -34,6 +35,7 @@ const navigation = [
   ] },
   { section: 'SYSTEM', items: [
     { href: '/settings', name: 'Data & Settings', icon: Settings2 },
+    { href: '/help', name: 'Help & Documentation', icon: BookOpen },
   ] },
 ];
 
@@ -101,10 +103,11 @@ function Frame({ children }: { children: React.ReactNode }) {
           <div className="network-pill"><span className="pulse-dot" /> Ethereum</div>
           <span>{workspace.progress ? workspace.progress.stage : 'Indexer idle'}</span>
           <button className="icon-btn" type="button" aria-label="Notification permission" title="Browser notifications stay in this tab" onClick={() => { if (typeof Notification !== 'undefined') void Notification.requestPermission(); }}><Bell size={16} /></button>
+          <Link className="icon-btn" href="/help" aria-label="Help"><CircleHelp size={16} /></Link>
           <Link className="icon-btn" href="/settings" aria-label="Settings"><Settings2 size={16} /></Link>
         </div>
       </header>
-      <main className="content"><VersionNotice />{children}</main>
+      <main className="content"><VersionNotice />{children}<Suspense fallback={null}><TourDock /></Suspense></main>
       <footer className="footer"><span>ARC / ETHEREUM RESEARCH TERMINAL</span><span>Chain metrics stay blank until logs are indexed</span></footer>
     </div>
     {open && <button className="mobile-backdrop" aria-label="Close navigation" onClick={() => setOpen(false)} />}
