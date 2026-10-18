@@ -1,7 +1,7 @@
 "use client";
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { Activity, ArrowRight, ArrowUpRight, Bot, Plus, ShieldCheck, TrendingUp, Wallet } from '@/components/icons';
+import { Activity, ArrowRight, ArrowUpRight, Bot, Droplets, Plus, ShieldCheck, TrendingDown, TrendingUp, Wallet } from '@/components/icons';
 import { DemoBadge, MetricTile, PageHeading, Pill, StatProgress, TradeTable, TrendChart, WindowControls } from '@/components/ui';
 import { useWorkspace } from '@/components/workspace';
 import { aggregate, durations, selectTrades } from '@/lib/data';
@@ -31,7 +31,7 @@ export default function Overview() {
   const share = live?.botBuyShare ?? demoAgg?.botShare ?? 0;
   const partial = Boolean(active && minutes > active.window.minutes);
   return <>
-    <PageHeading eyebrow="COMMAND CENTER / OVERVIEW" title="See the whole launch." description="One intelligence layer for every Ethereum token you launch. Understand buying behavior, automated traders and the actual flow of capital."><Link href="/analysis" className="btn primary"><Plus size={16} /> Analyze token</Link></PageHeading>
+    <PageHeading eyebrow="COMMAND CENTER / OVERVIEW" title="See the whole launch." description="The control center for an indexed Ethereum token. Figures below come from the open snapshot, or stay blank until you analyze a contract."><Link href="/analysis" className="btn primary"><Plus size={16} /> Analyze token</Link></PageHeading>
     {demo && <DemoBadge />}
     <div className="feature-hero"><div><div className="feature-kicker"><span className="live-dot" /> MULTI-TOKEN INTELLIGENCE</div><h2>Every launch has a story.<br /><em>Read the on-chain truth.</em></h2><p>Reconstruct trades, investigate wallets, compare launches and plan the next move with evidence—not guesswork.</p><div className="feature-actions"><Link href="/analysis" className="btn bright">Explore a token <ArrowRight size={16} /></Link><Link href="/planner" className="btn ghost">Open launch planner</Link></div></div><div className="hero-art"><div className="halo halo-1" /><div className="halo halo-2" /><div className="halo halo-3" /><div className="hero-glow" /><div className="orbit-core"><Activity size={46} /></div><span className="orbit-dot orbit-a" /><span className="orbit-dot orbit-b" /><span className="orbit-dot orbit-c" /></div></div>
     <WindowControls interval={interval} setInterval={setInterval} custom={custom} setCustom={setCustom} />
@@ -39,10 +39,14 @@ export default function Overview() {
     {ready && !active && !demo && <div className="data-boundary"><ShieldCheck size={20} /><div><strong>No indexed token yet</strong><p>Overview figures stay blank until you analyze a contract. Synthetic trades are not shown unless demo mode is enabled in Data &amp; settings.</p></div></div>}
     {partial && <div className="data-boundary"><ShieldCheck size={20} /><div><strong>Stored window is shorter than this selection</strong><p>This snapshot covers {active?.window.minutes} minutes, and the figures use that full window. Open the analyzer to index a longer interval.</p></div></div>}
     <div className="metrics-grid">
-      <MetricTile hint={KPI_HINTS.grossBuy} label="GROSS BUY VOLUME" value={buy === '—' ? '—' : `${buy} ETH`} sub={demo ? 'Synthetic fixtures' : active ? 'Independent wallets · valued WETH routes' : 'Not indexed'} icon={TrendingUp} tone="green" />
-      <MetricTile hint={KPI_HINTS.botBuy} label="AUTOMATED BUY ESTIMATE" value={bot === '—' ? '—' : `${bot} ETH`} sub={share ? `${share.toFixed(1)}% high+medium evidence` : 'No attributed buys'} icon={Bot} tone="blue" />
-      <MetricTile hint={KPI_HINTS.net} label="NET ETH FLOW" value={net === '—' ? '—' : `${net} ETH`} sub="Valued buys minus valued sells" icon={Activity} tone="green" />
-      <MetricTile hint={KPI_HINTS.buyers} label="UNIQUE BUYER WALLETS" value={buyers} sub="Signers, not unique humans" icon={Wallet} />
+      <MetricTile href="/analysis" hint={KPI_HINTS.grossBuy} label="GROSS ETH BUY VOLUME" value={buy === '—' ? '—' : `${buy} ETH`} sub={demo ? 'Synthetic fixtures' : active ? 'Independent wallets · valued WETH routes' : 'Not indexed'} icon={TrendingUp} tone="green" />
+      <MetricTile href="/bots" hint={KPI_HINTS.botBuy} label="AUTOMATED BUY ESTIMATE" value={bot === '—' ? '—' : `${bot} ETH`} sub={share ? `${share.toFixed(1)}% high+medium evidence` : 'No attributed buys'} icon={Bot} tone="blue" />
+      <MetricTile href="/analysis" hint={KPI_HINTS.grossSell} label="GROSS ETH SELL VOLUME" value={live ? `${formatEth(live.grossSellWei)} ETH` : demoAgg ? `${demoAgg.sells.toFixed(2)} ETH` : '—'} sub="Project wallets excluded" icon={TrendingDown} tone="red" />
+      <MetricTile href="/analysis" hint={KPI_HINTS.net} label="NET ETH FLOW" value={net === '—' ? '—' : `${net} ETH`} sub="Valued buys minus valued sells" icon={Activity} tone="green" />
+      <MetricTile href="/wallets" hint={KPI_HINTS.buyers} label="UNIQUE BUYING WALLETS" value={buyers} sub="Signers, not unique humans" icon={Wallet} />
+      <MetricTile href="/analysis" label="TRADING ACTIVITY" value={live ? String(live.buyCount + live.sellCount) : demoAgg ? String(demoAgg.buyCount + demoAgg.sellCount) : '—'} sub={live ? `${live.buyCount} buys · ${live.sellCount} sells` : 'Economic trades in view'} icon={Activity} />
+      <MetricTile href="/analysis" label="ACTIVE LIQUIDITY" value={live?.initialLiquidityWei ? `${formatEth(live.initialLiquidityWei)} ETH` : '—'} sub={live ? `${live.lpEvents} liquidity events stored` : 'Not reconstructed'} icon={Droplets} tone="blue" />
+      <MetricTile href="/settings" label="COVERAGE CONFIDENCE" value={active?.coverage.pct === undefined ? '—' : `${active.coverage.pct}%`} sub={active?.coverage.provisional ? 'Provisional' : active ? 'Stored snapshot' : 'Not indexed'} icon={ShieldCheck} />
     </div>
     <div className="dashboard-grid">
       <section className="panel chart-panel"><div className="panel-header"><div><div className="panel-eyebrow">CAPITAL FLOW</div><h3>{active ? active.token.symbol : 'Cumulative trading activity'}</h3></div><Pill kind={demo ? 'amber' : active ? 'green' : 'muted'}>{demo ? 'Illustrative' : active ? 'Chain logs' : 'Empty'}</Pill></div><TrendChart trades={trades} label={demo ? 'Demo cumulative volume' : 'Indexed cumulative volume'} /></section>

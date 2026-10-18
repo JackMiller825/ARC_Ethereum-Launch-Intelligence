@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { Bot, ShieldCheck } from '@/components/icons';
-import { DemoBadge, PageHeading, Pill, StatProgress } from '@/components/ui';
+import { DemoBadge, MetricTile, PageHeading, Pill, StatProgress, TrendChart } from '@/components/ui';
 import { useWorkspace } from '@/components/workspace';
 import { formatEth } from '@/lib/format';
 import { HEURISTIC_VERSION } from '@/lib/chain/constants';
@@ -24,11 +24,18 @@ export default function Bots() {
   const matched = (active?.trades || []).filter((trade) => trade.classification === chosen.key && !trade.isProject && trade.side === 'BUY');
   const wei = matched.reduce((sum, trade) => sum + BigInt(trade.ethWei || 0), 0n);
   return <>
-    <PageHeading eyebrow="RESEARCH / AUTOMATION" title="Know who is trading." description={`Explainable classes from ${HEURISTIC_VERSION}. A router call by an EOA is assisted execution, not an autonomous bot.`} />
+    <PageHeading eyebrow="RESEARCH / AUTOMATION" title="Understand the Machines Behind the Market." description={`Explainable classes from ${HEURISTIC_VERSION}. A router call by an EOA is assisted execution, not an autonomous bot. These labels are evidence, not an operator identity.`} />
     {settings.demoMode && !active && <DemoBadge />}
+    <div className="metrics-grid">
+      <MetricTile label="AUTOMATED GROSS BUY" value={active ? `${formatEth(active.kpis.botBuyWei)} ETH` : '—'} sub="HIGH and MEDIUM evidence" icon={Bot} tone="blue" />
+      <MetricTile label="AUTOMATED GROSS SELL" value={active ? `${formatEth(active.kpis.botSellWei)} ETH` : '—'} sub="Same evidence bands" icon={Bot} tone="red" />
+      <MetricTile label="ESTIMATED SHARE" value={active?.kpis.botBuyShare === null || !active ? '—' : `${active.kpis.botBuyShare.toFixed(1)}%`} sub="Of valued independent buys" icon={ShieldCheck} tone="green" />
+      <MetricTile label="UNCLASSIFIED BUY" value={active?.kpis.bands ? `${formatEth(active.kpis.bands.unknownWei)} ETH` : '—'} sub="Unknown band stays outside the automated total" icon={ShieldCheck} />
+    </div>
     <div className="bots-layout"><div className="bot-cards">{bots.map((bot, index) => <button key={bot.name} onClick={() => setSelected(index)} className={`bot-card ${selected === index ? 'chosen' : ''}`}><span className="bot-icon"><Bot size={19} /></span><span className="bot-card-text"><small>{bot.type}</small><strong>{bot.name}</strong><span>{bot.key}</span></span></button>)}</div>
       <div className="panel bot-detail"><div className="panel-eyebrow">STRATEGY DEEP DIVE</div><div className="bot-detail-head"><div className="bot-detail-icon"><Bot size={32} /></div><Pill kind={chosen.key === 'Sandwich' ? 'amber' : 'green'}>{chosen.type}</Pill></div><h2>{chosen.name}</h2><p>{chosen.notes}</p>
         <StatProgress label={active ? `Valued buys on ${active.token.symbol}` : 'Indexed evidence'} value={active ? `${formatEth(wei.toString())} ETH` : '—'} percentage={active && BigInt(active.kpis.grossBuyWei) > 0n ? Number((wei * 100n) / BigInt(active.kpis.grossBuyWei)) : 0} />
+        <TrendChart trades={matched} label={`${chosen.name} chronology`} />
         <div className="detail-divider" />
         <h4>{matched.length ? `${matched.length} supporting trades` : 'No trades in the active snapshot'}</h4>
         {(matched[0]?.evidence || ['First execution block and swap ordering', 'Contract code versus EOA router calls', 'Repeated leader-lag', 'Round-trip timing', 'Model version on every row']).slice(0, 6).map((item, index) => <div className="evidence-row" key={item}><span>{String(index + 1).padStart(2, '0')}</span>{item}</div>)}
