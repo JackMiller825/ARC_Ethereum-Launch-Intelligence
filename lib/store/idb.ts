@@ -9,6 +9,10 @@ export const defaultSettings: AppSettings = {
   rpcUrls: [],
   blockscoutBase: 'https://eth.blockscout.com',
   demoMode: false,
+  refreshMode: 'manual',
+  alertBuyEth: 0.5,
+  alertSellEth: 0.5,
+  coverageFloor: 90,
 };
 
 export const defaultPlaybook = (): Playbook => ({
@@ -30,6 +34,7 @@ export const defaultPlaybook = (): Playbook => ({
   expectedStart: '',
   plannedSupply: '',
   qualityThreshold: 90,
+  operationalBudget: 0,
   completed: [],
   milestones: [],
   updatedAt: Date.now(),
@@ -94,7 +99,7 @@ export async function listSnapshots() {
 }
 
 export async function loadSettings() {
-  return (await read<AppSettings>('settings', 'app')) || defaultSettings;
+  return { ...defaultSettings, ...(await read<AppSettings>('settings', 'app') || {}) };
 }
 
 export async function saveSettings(settings: AppSettings) {

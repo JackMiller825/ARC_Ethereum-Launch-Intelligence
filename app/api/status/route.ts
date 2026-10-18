@@ -30,6 +30,8 @@ export async function GET() {
   return NextResponse.json({
     network: 'ethereum-mainnet',
     chainId: 1,
+    commit: process.env.NEXT_PUBLIC_COMMIT_SHA || 'unknown',
+    builtAt: process.env.NEXT_PUBLIC_BUILD_TIME || null,
     heuristicVersion: HEURISTIC_VERSION,
     rpc,
     database,

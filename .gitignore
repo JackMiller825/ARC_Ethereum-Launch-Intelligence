@@ -8,4 +8,5 @@ node_modules/
 phase3-live.log
 phase3-sish.log
 phase3-other.log
+public/version.json
 .DS_Store

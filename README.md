@@ -37,5 +37,6 @@ Deployment steps, the Pages URL, and the API map are in [docs/DEPLOYMENT.md](doc
 - GitHub Pages cannot host the Postgres worker. The static site indexes from the browser.
 - A window that runs past the chain tip stops at the tip. Those future minutes are not reported as zero trading.
 - Phase 3 measurements are in `docs/PHASE3_VALIDATION_REPORT.md`.
+- The sidebar SHA is the git commit of the build. `1.0.0` is only the npm package version. See `docs/PHASE4_DEPLOYMENT.md`.
 
 No wallet connection, seed phrase, or automated purchase path is included.

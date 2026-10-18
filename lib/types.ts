@@ -196,6 +196,7 @@ export type Playbook = {
   expectedStart: string;
   plannedSupply: string;
   qualityThreshold: number;
+  operationalBudget: number;
   completed: string[];
   milestones: { id: string; label: string; note: string }[];
   updatedAt: number;
@@ -209,10 +210,16 @@ export type LibraryCatalog = {
   groups: ComparisonGroup[];
 };
 
+export type RefreshMode = 'manual' | 'block' | '15' | '30' | '60' | '300';
+
 export type AppSettings = {
   rpcUrls: string[];
   blockscoutBase: string;
   demoMode: boolean;
+  refreshMode: RefreshMode;
+  alertBuyEth: number;
+  alertSellEth: number;
+  coverageFloor: number;
 };
 
 export type WalletLabel = { address: string; role: 'project' | 'independent'; note: string };
