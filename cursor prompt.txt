@@ -1,0 +1,11 @@
+Read `docs/CURSOR_PROMPT.md` and execute its complete implementation specification against this existing repository.
+
+Preserve the ARC design system, seven established application pages, reusable components and responsive styling.
+
+First inspect the existing codebase and run dependency installation, TypeScript checks and a production build. Fix all errors before adding features.
+
+Then complete the real Ethereum mainnet analytics pipeline so I can enter **any historical or future ERC-20 contract address**, choose a custom analysis interval, inspect actual buy/sell transactions, investigate wallet behavior, estimate automated trading participation with supporting evidence, and compare launches.
+
+Build persistent multi-token history, production-grade event ingestion, wallet attribution, and a detailed market-responsive launch planner.
+
+Never substitute synthetic trades for live token data. Finish with passing tests, verified real-transaction examples, updated page previews and a production deployment guide.

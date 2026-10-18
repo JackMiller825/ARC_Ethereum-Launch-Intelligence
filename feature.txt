@@ -1,0 +1,13 @@
+Feature	Current state
+Seven Next.js application pages	Preserved
+Ethereum CA input and validation	Zod plus viem
+Live token metadata lookup	ERC-20 reads, Blockscout when reachable
+Selectable intervals	Launch, trailing, and absolute UTC, 1–10,080 minutes
+Custom interval from 1 minute to 7 days	Applied to real log queries
+Liquidity and automated-buy scenario planner	Editable, saved locally, compared with indexed baselines
+Seven-phase launch checklist	Persisted in the playbook
+JSON plan and CSV export	Chain rows include tx, log index, wei, and evidence
+Multi-token workspace	IndexedDB snapshots and comparison table
+Historical live swap reconstruction	Uniswap V2, V3, and V4 log decoder
+Real bot attribution and wallet forensics	arc-heuristic-v1 ordinal labels
+Persistent database and indexed history	Browser IndexedDB plus optional Postgres worker

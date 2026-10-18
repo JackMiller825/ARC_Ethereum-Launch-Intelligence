@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: arc
+      POSTGRES_PASSWORD: arc
+      POSTGRES_DB: arc
+    ports:
+      - "5432:5432"
+    volumes:
+      - arc-pg:/var/lib/postgresql/data
+  web:
+    build: .
+    environment:
+      DATABASE_URL: postgres://arc:arc@db:5432/arc
+      ETHEREUM_RPC_URL: https://rpc.mevblocker.io
+      BLOCKSCOUT_BASE_URL: https://eth.blockscout.com
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+  worker:
+    build: .
+    command: ["npm", "run", "worker", "--", "0xe6f94f305ce2a00219fd4d476aa79f37304ffe8b"]
+    environment:
+      DATABASE_URL: postgres://arc:arc@db:5432/arc
+      ETHEREUM_RPC_URL: https://rpc.mevblocker.io
+      INDEX_MINUTES: "60"
+      INDEX_MODE: launch
+    depends_on:
+      - db
+volumes:
+  arc-pg:

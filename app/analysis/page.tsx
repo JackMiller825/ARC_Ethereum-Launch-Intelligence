@@ -1,0 +1,84 @@
+"use client";
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Activity, ArrowRight, Bot, Copy, ExternalLink, Search, ShieldCheck, TrendingUp, Wallet } from '@/components/icons';
+import { DemoBadge, ExportButton, MetricTile, PageHeading, Pill, TradeTable, TrendChart, WindowControls } from '@/components/ui';
+import { useWorkspace } from '@/components/workspace';
+import { durations, REFERENCE_CA, selectTrades, aggregate } from '@/lib/data';
+import { formatEth, shortAddr, utcStamp } from '@/lib/format';
+import { computeKpis, turnoverNote } from '@/lib/chain/kpis';
+import { absoluteMinutes, tradesInView } from '@/lib/intervals';
+import type { Interval, WindowMode, WindowSpec } from '@/lib/types';
+
+function Analyzer() {
+  const qs = useSearchParams();
+  const { ready, active, setActive, snapshots, analyze, progress, error, cancel, settings } = useWorkspace();
+  const [ca, setCa] = useState(qs.get('ca') || '');
+  const [interval, setInterval] = useState<Interval>('1h');
+  const [custom, setCustom] = useState(90);
+  const [mode, setMode] = useState<WindowMode>('launch');
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const [localError, setLocalError] = useState('');
+  const minutes = interval === 'custom' ? custom : durations[interval];
+  const viewing = active && ca && active.token.address.toLowerCase() === ca.toLowerCase() ? active : null;
+  const demoTrades = settings.demoMode && !viewing ? selectTrades(minutes) : [];
+  const trades = useMemo(() => viewing ? tradesInView(viewing.trades, viewing.window.mode === 'absolute' ? viewing.window.minutes : minutes, viewing.window.minutes) : demoTrades, [viewing, minutes, demoTrades]);
+  const kpis = useMemo(() => viewing ? computeKpis(trades, { initialLiquidityWei: viewing.kpis.initialLiquidityWei ? BigInt(viewing.kpis.initialLiquidityWei) : null, lpEvents: viewing.kpis.lpEvents, t0Block: viewing.timeline.t0Block }) : null, [viewing, trades]);
+  const demo = settings.demoMode && !viewing ? aggregate(demoTrades) : null;
+
+  useEffect(() => {
+    const query = qs.get('ca');
+    if (!query || !ready) return;
+    setCa(query);
+    const saved = snapshots.find((item) => item.token.address.toLowerCase() === query.toLowerCase());
+    if (saved) {
+      setActive(saved);
+      const match = (Object.entries(durations) as [Exclude<Interval, 'custom'>, number][]).find(([, value]) => value === saved.window.minutes);
+      setInterval(match ? match[0] : 'custom');
+      if (!match) setCustom(saved.window.minutes);
+      setMode(saved.window.mode);
+    }
+  }, [qs, ready, snapshots, setActive]);
+
+  async function run(input = ca) {
+    setLocalError('');
+    let spec: WindowSpec;
+    try {
+      spec = mode === 'absolute' ? { mode, startIso: new Date(start).toISOString(), endIso: new Date(end).toISOString(), minutes: absoluteMinutes(start, end) } : { mode, minutes };
+    } catch (cause) {
+      setLocalError(cause instanceof Error ? cause.message : 'Invalid window.');
+      return;
+    }
+    await analyze(input, spec);
+  }
+
+  return <>
+    <PageHeading eyebrow="RESEARCH / TOKEN ANALYZER" title="Investigate any token." description="Paste an Ethereum contract address. The indexer reads pool events for the window you choose and keeps every gap explicit." />
+    <div className="lookup-box"><form onSubmit={(e) => { e.preventDefault(); run(); }} className="lookup-form"><Search size={21} /><input aria-label="Ethereum token contract address" value={ca} onChange={(e) => setCa(e.target.value)} placeholder="Paste any Ethereum ERC-20 contract address · 0x…" spellCheck={false} /><button disabled={Boolean(progress)} className="btn primary" type="submit">{progress ? 'Indexing…' : 'Analyze token'} <ArrowRight size={16} /></button></form><div className="lookup-foot"><span><ShieldCheck size={14} /> Ethereum mainnet · logs decoded locally in this browser</span><span>{settings.demoMode ? 'Demo mode on' : 'Real logs or an explicit gap'}</span></div></div>
+    {(error || localError) && <div className="error-note">{localError || error}</div>}
+    {viewing && <div className="token-identity"><div className="identity-icon">{viewing.token.symbol.slice(0, 2)}</div><div className="identity-main"><div className="eyebrow">IDENTIFIED TOKEN</div><h2>{viewing.token.name} <span>/{viewing.token.symbol}</span></h2><div className="identity-address"><code>{viewing.token.address}</code><button type="button" onClick={() => navigator.clipboard.writeText(viewing.token.address)} aria-label="Copy address"><Copy size={15} /></button></div></div><div className="identity-right"><Pill kind="green">{viewing.token.source === 'chain' ? 'On-chain metadata' : 'Blockscout + chain'}</Pill>{viewing.token.verified && <Pill kind="green">Verified</Pill>}<a href={`https://etherscan.io/token/${viewing.token.address}`} target="_blank" rel="noreferrer" className="btn secondary"><ExternalLink size={15} /> Etherscan</a></div></div>}
+    {!viewing && !progress && <div className="quick-start"><span>QUICK RESEARCH</span><button type="button" onClick={() => { setCa(REFERENCE_CA); run(REFERENCE_CA); }}>Index $SISH reference <ArrowRight size={15} /></button></div>}
+    <div className="data-boundary"><ShieldCheck size={20} /><div><strong>{viewing ? 'Chain reconstruction' : progress ? 'Indexing chain logs' : 'Waiting for an index run'}</strong><p>{viewing ? `T0 ${utcStamp(viewing.timeline.t0Timestamp)} · deploy ${utcStamp(viewing.timeline.deployTimestamp)} · first liquidity ${utcStamp(viewing.timeline.firstLiquidityTimestamp)}. ${turnoverNote(kpis?.turnover ?? null)}` : progress ? progress.detail : 'No synthetic ledger is substituted for a contract. Run Analyze to read Uniswap V2, V3 and V4 logs.'}</p></div></div>
+    {settings.demoMode && !viewing && <DemoBadge />}
+    <WindowControls interval={interval} setInterval={setInterval} custom={custom} setCustom={setCustom} mode={mode} setMode={setMode} />
+    {mode === 'absolute' && <div className="parameter-grid" style={{ marginBottom: 16 }}><label>Start (converted to UTC)<div className="input-with-unit"><input aria-label="Window start" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} /></div></label><label>End (converted to UTC)<div className="input-with-unit"><input aria-label="Window end" type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} /></div></label></div>}
+    {progress && <section className="panel"><div className="panel-eyebrow">INDEXER</div><h3>{progress.stage}</h3><p className="panel-desc">{progress.detail}</p><div className="progress-track"><div className="progress-fill" style={{ width: `${progress.pct}%` }} /></div><button className="btn ghost" type="button" onClick={cancel} style={{ marginTop: 14 }}>Cancel</button></section>}
+    <div className="metrics-grid">
+      <MetricTile label="GROSS BUY VOLUME" value={kpis ? `${formatEth(kpis.grossBuyWei)} ETH` : demo ? `${demo.buys.toFixed(2)} ETH` : '—'} sub={kpis ? `${kpis.buyCount} economic buys` : demo ? 'Synthetic fixtures' : 'Not indexed'} icon={TrendingUp} tone="green" />
+      <MetricTile label="BOT-ATTRIBUTED" value={kpis ? `${formatEth(kpis.botBuyWei)} ETH` : demo ? `${demo.botBuys.toFixed(2)} ETH` : '—'} sub={kpis?.botBuyShare !== null && kpis ? `${kpis.botBuyShare.toFixed(1)}% high+medium` : 'Unknown remainder excluded'} icon={Bot} tone="blue" />
+      <MetricTile label="GROSS SELL VOLUME" value={kpis ? `${formatEth(kpis.grossSellWei)} ETH` : demo ? `${demo.sells.toFixed(2)} ETH` : '—'} sub="Project wallets excluded" icon={Activity} tone="red" />
+      <MetricTile label="BUYER WALLETS" value={kpis ? String(kpis.uniqueBuyers) : demo ? String(demo.buyers) : '—'} sub={kpis ? `${kpis.firstBlockBuyers} in the T0 block` : 'Signers, not humans'} icon={Wallet} />
+    </div>
+    <div className="dashboard-grid">
+      <div className="panel chart-panel"><div className="panel-header"><div><div className="panel-eyebrow">{viewing ? 'INDEXED TIMELINE' : 'TIMELINE'}</div><h3>Flow reconstruction</h3></div><Pill kind={viewing ? 'green' : 'amber'}>{viewing ? viewing.coverage.logSource : 'Not indexed'}</Pill></div><TrendChart trades={trades} /></div>
+      <div className="panel insight-panel"><div className="panel-header"><div><div className="panel-eyebrow">COVERAGE</div><h3>Analysis checklist</h3></div></div>{(viewing ? viewing.coverage.items : ['Discover V2, V3 and V4 pools', 'Determine first tradable swap (T0)', 'Decode canonical swap logs', 'Reconstruct ETH purchase routes', 'Exclude liquidity & project self-trades', 'Score automation with evidence', 'Reconcile final transaction counts'].map((label) => ({ id: label, label, state: 'unavailable' as const, detail: 'Not run' }))).map((item) => <div className="coverage-row" key={item.id}><span className="coverage-number">{item.state === 'done' ? 'OK' : item.state === 'partial' ? 'GAP' : '—'}</span>{item.label}<span className="coverage-pending">{item.detail}</span></div>)}{kpis && <p className="panel-desc">{kpis.failedSwapsReason}</p>}</div>
+    </div>
+    {viewing && <div className="panel" style={{ marginBottom: 18 }}><div className="panel-header"><div><div className="panel-eyebrow">POOLS</div><h3>Verified venues</h3></div><Pill kind="blue">{viewing.pools.length}</Pill></div>{viewing.pools.map((pool) => <div className="coverage-row" key={`${pool.protocol}-${pool.poolId || pool.address}`}><span className="coverage-number">{pool.protocol}</span><code>{shortAddr(pool.poolId || pool.address)}</code><span className="coverage-pending">{pool.discovery}</span></div>)}{viewing.warnings.length > 0 && <div className="warn-list">{viewing.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div>}</div>}
+    <div className="panel"><div className="panel-header"><div><div className="panel-eyebrow">TRANSACTION FORENSICS</div><h3>{viewing ? 'Economic trades' : 'Ledger'}</h3></div><ExportButton trades={trades} filename={viewing ? `${viewing.token.symbol.toLowerCase()}-trades.csv` : 'arc-synthetic-trades.csv'} /></div><TradeTable trades={trades} max={18} /></div>
+  </>;
+}
+
+export default function Analysis() {
+  return <Suspense fallback={<div className="panel">Loading analyzer…</div>}><Analyzer /></Suspense>;
+}

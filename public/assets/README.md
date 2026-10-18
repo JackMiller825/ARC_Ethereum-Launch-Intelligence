@@ -1,0 +1,1 @@
+Original SVG artwork supplied with ARC: arc-mark.svg (application mark), hero-orbit.svg (landing illustration), grid-pattern.svg (tiled background texture). All are local editable vectors and require no paid image licenses. The interface itself uses CSS and Lucide vector icons. Screenshots in previews/ are supplemental image assets produced from the actual codebase.
