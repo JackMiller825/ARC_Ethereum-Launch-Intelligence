@@ -1,8 +1,9 @@
-import type { AnalysisSuccess, AppSettings, Playbook, WalletLabel } from '../types';
+import { emptyCatalog } from '../analytics/session';
+import type { AnalysisSuccess, AppSettings, LibraryCatalog, Playbook, WalletLabel } from '../types';
 import { DEFAULT_RPCS } from '../chain/constants';
 
 const DB_NAME = 'arc-launch-intelligence';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export const defaultSettings: AppSettings = {
   rpcUrls: [],
@@ -21,6 +22,12 @@ export const defaultPlaybook = (): Playbook => ({
   botShare: 40,
   botSellRatio: 70,
   windowMinutes: 60,
+  tokenName: '',
+  ticker: '',
+  plannedAddress: '',
+  tokenToLp: '',
+  poolType: 'v2',
+  expectedStart: '',
   completed: [],
   milestones: [],
   updatedAt: Date.now(),
@@ -31,7 +38,7 @@ function openDb() {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      for (const name of ['snapshots', 'playbooks', 'settings', 'labels', 'checkpoints']) {
+      for (const name of ['snapshots', 'playbooks', 'settings', 'labels', 'checkpoints', 'catalog']) {
         if (!db.objectStoreNames.contains(name)) db.createObjectStore(name);
       }
     };
@@ -93,7 +100,8 @@ export async function saveSettings(settings: AppSettings) {
 }
 
 export async function loadPlaybook() {
-  return (await read<Playbook>('playbooks', 'default')) || defaultPlaybook();
+  const stored = await read<Partial<Playbook>>('playbooks', 'default');
+  return { ...defaultPlaybook(), ...(stored || {}) };
 }
 
 export async function savePlaybook(playbook: Playbook) {
@@ -113,11 +121,19 @@ export async function saveLabel(label: WalletLabel) {
 export async function clearWorkspace() {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(['snapshots', 'playbooks', 'labels', 'checkpoints'], 'readwrite');
-    ['snapshots', 'playbooks', 'labels', 'checkpoints'].forEach((name) => tx.objectStore(name).clear());
+    const tx = db.transaction(['snapshots', 'playbooks', 'labels', 'checkpoints', 'catalog'], 'readwrite');
+    ['snapshots', 'playbooks', 'labels', 'checkpoints', 'catalog'].forEach((name) => tx.objectStore(name).clear());
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
+}
+
+export async function loadCatalog() {
+  return { ...emptyCatalog(), ...(await read<LibraryCatalog>('catalog', 'library') || {}) };
+}
+
+export async function saveCatalog(catalog: LibraryCatalog) {
+  await write('catalog', 'library', catalog);
 }
 
 export function rpcList(settings: AppSettings) {

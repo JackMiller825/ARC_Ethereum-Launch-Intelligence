@@ -24,7 +24,7 @@ export const DEFAULT_RPCS = [
   'https://ethereum.publicnode.com',
 ];
 
-export const HEURISTIC_VERSION = 'arc-heuristic-v1';
+export const HEURISTIC_VERSION = 'arc-heuristic-v2';
 
 export const ROUTERS: Record<string, string> = {
   '0x7a250d5630b4cf539739df2c5dacb4c659f2488d': 'Uniswap V2 Router',

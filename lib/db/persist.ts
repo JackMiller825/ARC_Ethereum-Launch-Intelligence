@@ -1,12 +1,19 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import pg from 'pg';
 import type { AnalysisSuccess } from '../types';
 import { reorgStatus } from '../chain/reorg';
 
+export function migrationFiles() {
+  const dir = join(process.cwd(), 'db/migrations');
+  return readdirSync(dir).filter((name) => name.endsWith('.sql')).sort();
+}
+
 export async function migrate(pool: pg.Pool) {
-  const sql = readFileSync(join(process.cwd(), 'db/migrations/001_init.sql'), 'utf8');
-  await pool.query(sql);
+  const dir = join(process.cwd(), 'db/migrations');
+  for (const name of migrationFiles()) {
+    await pool.query(readFileSync(join(dir, name), 'utf8'));
+  }
 }
 
 export async function persistAnalysis(pool: pg.Pool, analysis: AnalysisSuccess) {

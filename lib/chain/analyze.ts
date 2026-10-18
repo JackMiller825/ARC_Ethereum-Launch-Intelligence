@@ -6,6 +6,7 @@ import { createChainClient, mapLimit, resolveRpcUrls, throwIfAborted } from './c
 import { decodeLiquidity, decodeSwap, type RawSwap } from './decode';
 import { discoverPools } from './discover';
 import { blankTrade, poolWethOutflow, reconcileTransaction, type TxMeta } from './economics';
+import { coverageScore } from '../analytics/coverage';
 import { classifyTrades, HEURISTIC_VERSION } from './heuristics';
 import { computeKpis } from './kpis';
 import { fetchLogs, findEarliestLog, type ChainLog } from './logs';
@@ -27,7 +28,7 @@ type Options = {
 };
 
 export async function analyzeToken(options: Options): Promise<AnalysisResult> {
-  const progress = (stage: string, detail: string, pct: number) => options.onProgress?.({ stage, detail, pct });
+  const progress = (stage: string, detail: string, pct: number, extra: Partial<ProgressUpdate> = {}) => options.onProgress?.({ stage, detail, pct, ...extra });
   if (!isAddress(options.address)) {
     return { ok: false, origin: 'unavailable', address: options.address, reason: 'Enter a valid 0x-prefixed Ethereum address.', warnings: [] };
   }
@@ -115,7 +116,8 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
     const sources = new Set<string>();
     const swapLogs: { log: ChainLog; pool: PoolInfo }[] = [];
     const audits: AuditEvent[] = [];
-    progress('Swaps', `Reading swap logs from ${startBlock} to ${endBlock}`, 64);
+    const targetBlocks = Number(endBlock - startBlock);
+    progress('Swaps', `Reading swap logs from ${startBlock} to ${endBlock}`, 64, { targetBlocks, blocksScanned: 0, pools: discovered.pools.length, swaps: 0 });
     for (const pool of discovered.pools) {
       throwIfAborted(options.signal);
       const swapTopic = pool.protocol === 'v2' ? TOPIC.swapV2 : pool.protocol === 'v3' ? TOPIC.swapV3 : TOPIC.swapV4;
@@ -139,6 +141,7 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
           audits.push({ kind: decoded.kind, txHash: log.transactionHash, blockNumber: log.blockNumber, logIndex: log.logIndex, wallet: decoded.actor, reason: decoded.kind === 'mint' ? 'Liquidity mint is excluded from independent buy volume.' : 'Liquidity burn is excluded from independent sell volume.' });
         }
       }
+      progress('Swaps', `Indexed ${swapLogs.length} swap logs across ${discovered.pools.length} pools`, 70, { targetBlocks, blocksScanned: targetBlocks, pools: discovered.pools.length, swaps: swapLogs.length });
     }
 
     const raw: RawSwap[] = [];
@@ -230,7 +233,8 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
       { id: 'reconcile', label: 'Reconcile final transaction counts', state: matched ? 'done' : 'partial', detail: `${kpis.buyCount + kpis.sellCount} economic trades from ${limited.length} logs` },
     ];
     token.status = finalizedStatus(headNumber, Number(endBlock));
-    progress('Ready', 'Analysis assembled from chain logs', 100);
+    const score = coverageScore({ warnings: warnings.length, truncated: raw.length > 8000, kept: limited.length, raw: raw.length, matched });
+    progress(score.provisional ? 'Provisional' : 'Ready', score.provisional ? 'Coverage is incomplete. The percentage is the measured remainder, not a timer.' : 'Analysis assembled from chain logs', score.pct, { coveragePct: score.pct, provisional: score.provisional, swaps: limited.length, pools: discovered.pools.length, targetBlocks, blocksScanned: targetBlocks, errors: score.reasons });
     return {
       ok: true,
       origin: 'chain',
@@ -258,6 +262,8 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
         logSource: [...sources].filter(Boolean).join(', ') || 'ethereum-rpc',
         reconciliation: { rawSwapLogs: limited.length, economicTrades: trades.length, poolWethWei: poolWei.toString(), economicWethWei: economicWei.toString(), matched },
         tipHash: tip.hash,
+        pct: score.pct,
+        provisional: score.provisional,
       },
       window: options.window,
       warnings: [...new Set(warnings)].slice(0, 12),

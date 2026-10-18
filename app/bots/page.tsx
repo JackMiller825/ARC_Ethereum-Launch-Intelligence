@@ -13,6 +13,8 @@ const bots = [
   { name: 'Momentum strategies', type: 'SIGNAL', key: 'Momentum', notes: 'Several buys from one signer across the window, without a faster pattern.' },
   { name: 'Arbitrage searchers', type: 'MEV / ARB', key: 'Arbitrage', notes: 'A round trip inside 120 seconds. Often inventory-neutral rather than new demand.' },
   { name: 'Sandwich searchers', type: 'ADVERSARIAL', key: 'Sandwich', notes: 'A same-block buy and sell surrounding another buy. The label is a pattern, not an identity.' },
+  { name: 'MEV searchers', type: 'SAME BLOCK', key: 'MEV', notes: 'A same-block inventory flip without a surrounded victim. Contract code raises the ordinal label. It still does not name an operator.' },
+  { name: 'Market-making flow', type: 'TWO-SIDED', key: 'Market-maker', notes: 'Both sides, at least four trades, and more than three minutes. This is a weak hint, kept at LOW so it stays out of the automated KPI.' },
 ];
 
 export default function Bots() {

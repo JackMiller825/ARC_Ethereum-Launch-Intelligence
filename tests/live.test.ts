@@ -18,6 +18,9 @@ describe.skipIf(!live)('ethereum mainnet', () => {
     expect(result.kpis.grossBuyWei).not.toBe('0');
     expect(result.kpis.initialLiquidityWei).toBe('700000000000000000');
     expect(result.timeline.firstLiquidityTimestamp).toBe(result.timeline.t0Timestamp);
-    expect(result.coverage.heuristicVersion).toBe('arc-heuristic-v1');
+    expect(result.coverage.heuristicVersion).toBe('arc-heuristic-v2');
+    expect(result.coverage.pct).toBeLessThanOrEqual(100);
+    if (result.warnings.length) expect(result.coverage.provisional).toBe(true);
+    else expect(result.coverage.pct).toBe(100);
   }, 180_000);
 });

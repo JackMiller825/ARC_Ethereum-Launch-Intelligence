@@ -1,0 +1,530 @@
+# ARC ETHEREUM LAUNCH INTELLIGENCE — PHASE 2
+
+## MISSION: Build a production-grade Ethereum token research and launch-analysis platform
+
+**Existing repository:** https://github.com/JackMiller825/ARC_Ethereum-Launch-Intelligence
+
+**Live application:** https://jackmiller825.github.io/ARC_Ethereum-Launch-Intelligence/
+
+You are a senior full-stack engineer, Ethereum blockchain data engineer, on-chain forensic analyst, quantitative researcher, database architect and QA automation engineer.
+
+Your task is to upgrade the EXISTING ARC application into a highly accurate, fast, reliable and comprehensive Ethereum token-analysis platform.
+
+This is an improvement of an established project, not a new project.
+
+**Do not stop after planning. Implement the complete workflow, add meaningful tests, fix discovered defects, update documentation and validate the resulting application.**
+
+Do not claim that features work unless they have been successfully tested.
+
+---
+
+# 1. Inspect the existing repository first
+
+Before editing:
+
+1. Read `README.md`, all documentation, repository instructions and environment examples.
+2. Inspect `app/`, `components/`, `lib/`, `db/`, `worker/`, `scripts/` and `tests/`.
+3. Read `package.json`, `next.config.ts` and the GitHub Actions workflows.
+4. Examine existing Ethereum RPC, indexing, Uniswap decoding, IndexedDB, PostgreSQL and wallet-attribution implementations.
+5. Run the current build, lint, TypeScript checks and available tests.
+6. Identify existing defects, incomplete features, duplicate functionality and architectural weaknesses.
+
+Preserve the existing Next.js stack, seven application pages, ARC branding, dark theme, navigation and working functionality.
+
+Reuse established code wherever practical. Do not replace functioning modules merely to reorganize them.
+
+Create `docs/PHASE2_AUDIT.md` recording verified current features, incomplete areas, baseline test results and the implementation decisions.
+
+# 2. Core objective: Analyze ANY past or future Ethereum ERC-20 token
+
+The application must not be hardcoded to $SISH.
+
+Users must be able to paste any valid Ethereum mainnet ERC-20 contract address, load its blockchain information, identify its trading pools, reconstruct its trading activity and analyze wallets.
+
+Support:
+
+- Newly launched tokens.
+- Historical launches.
+- Active trading tokens.
+- Tokens with inactive pools.
+- Tokens with multiple liquidity pools.
+- Tokens with multiple quote currencies.
+- Tokens using Uniswap V2, V3 or V4.
+- Tokens with incomplete blockchain data, reporting limitations explicitly.
+
+Use $SISH as a regression-test fixture, not as the default or only supported token.
+
+Add token search history, recently analyzed contracts, favorites, comparison groups and persistent analysis sessions.
+
+Deduplicate tokens by chain ID and checksum-normalized address.
+
+# 3. Advanced configurable time intervals
+
+Implement one reusable TimeRangeSelector shared across relevant pages.
+
+Presets:
+
+- 1 minute
+- 3 minutes
+- 5 minutes
+- 10 minutes
+- 15 minutes
+- 30 minutes
+- 1 hour
+- 2 hours
+- 3 hours
+- 6 hours
+- 12 hours
+- 24 hours
+- 3 days
+- 7 days
+- 14 days
+- 30 days
+- Custom range
+
+Support three independent time modes:
+
+**A. Since trading launch:** T0 through T0 plus selected duration.
+
+**B. Rolling:** Last N minutes, hours or days relative to the current blockchain timestamp.
+
+**C. Absolute:** User-selected UTC start and end timestamps, with timezone-aware display.
+
+Support a date/time picker and a custom duration entry with proper validation.
+
+Define T0 carefully as the first verifiable successful public trading event, with pool discovery and sufficient liquidity context. If T0 cannot be determined reliably, display the uncertainty.
+
+Do not impose an artificial 24-hour data limit.
+
+For longer intervals, use historical indexing, pagination and caching. Display partial coverage explicitly if the necessary data cannot be retrieved.
+
+All analytics, tables and charts must use the same selected interval.
+
+Changing the interval must refresh or recompute the affected data correctly.
+
+# 4. Reliable Ethereum indexing engine
+
+Improve the existing ingestion architecture.
+
+Requirements:
+
+- Discover every relevant V2/V3/V4 pool supported by the implementation.
+- Use protocol-specific event decoding.
+- Support pool creation, liquidity initialization and subsequent trading.
+- Use block timestamps and exact transaction/log ordering.
+- Deduplicate events by stable chain/transaction/log identifiers.
+- Handle blockchain reorganizations.
+- Support historical backfills.
+- Support incremental live updates.
+- Persist indexing checkpoints.
+- Resume interrupted indexing.
+- Implement retry logic with bounded exponential backoff.
+- Respect RPC rate limits.
+- Adaptively split oversized `eth_getLogs` requests.
+- Avoid requesting the same block range repeatedly.
+- Detect incomplete index coverage.
+- Reconcile results from multiple providers when necessary.
+- Prevent race conditions when users switch tokens or time ranges.
+
+Use integer-safe handling for all raw token amounts.
+
+Build a canonical trade reconstruction layer that distinguishes actual swaps from ERC-20 transfers, liquidity operations, deposits, approvals and failed transactions.
+
+For multihop routes, count each economic token acquisition once.
+
+Track ETH/WETH consideration separately from stablecoin and other quote assets.
+
+If a route cannot be valued reliably in ETH, do not invent the value. Preserve it in an unvalued or unsupported category.
+
+# 5. Introduce a proper backend deployment strategy
+
+The site currently runs on GitHub Pages, which supports static hosting but cannot run the PostgreSQL indexing worker.
+
+Preserve GitHub Pages as the frontend deployment target.
+
+Create an independently deployable backend architecture providing:
+
+- Historical indexer.
+- Incremental worker.
+- Database persistence.
+- Cached token analytics.
+- Token discovery API.
+- Wallet analysis API.
+- Bot-classification API.
+- Launch comparison API.
+- Health and synchronization-status endpoints.
+
+Keep private RPC credentials and database secrets on the backend.
+
+Use the existing worker and database implementation wherever possible.
+
+Document a practical deployment configuration with environment variables, health checks, migrations and rollback instructions.
+
+If no backend service is configured, retain a clearly labeled browser-indexing fallback with explicit rate and coverage limitations.
+
+Do not claim the persistent worker is running merely because its source code exists.
+
+# 6. Extreme performance optimization
+
+Prioritize both correctness and low latency.
+
+Implement:
+
+- Parallel independent pool discovery.
+- Bounded-concurrency RPC requests.
+- Adaptive log-range batching.
+- Provider health and latency tracking.
+- Request deduplication.
+- Token metadata caching.
+- Pool metadata caching.
+- Incremental time-range expansion.
+- Persistent historical snapshots.
+- Server-side aggregation.
+- Virtualized large transaction and wallet tables.
+- Efficient database indexes.
+- Cancellation of obsolete analysis requests.
+- Graceful recovery from failed providers.
+
+Expose a meaningful progress indicator for long-running operations.
+
+Show:
+
+- Current stage.
+- Blocks scanned.
+- Total target blocks.
+- Pools discovered.
+- Swaps indexed.
+- Estimated coverage percentage.
+- Errors or skipped ranges.
+- Whether results are provisional or complete.
+
+Calculate progress from actual work completed, not an artificial timer.
+
+Never display 100% coverage when relevant events could not be retrieved.
+
+# 7. Deep trading analysis
+
+For every token and selected interval, calculate:
+
+- Total gross ETH buying volume.
+- Total gross ETH selling volume.
+- Net ETH flow.
+- Buy/sell transaction counts.
+- Unique economic buying addresses.
+- First-time and returning buyers.
+- Average and median purchase size.
+- Largest purchases.
+- Cumulative buy/sell curves.
+- First-block buy activity.
+- Time to first buy.
+- Price impact.
+- Liquidity depth.
+- Pool reserve changes.
+- Buy concentration.
+- Early-buyer retention.
+- First-minute, first-five-minute and subsequent interval performance.
+- Wallet entry-to-exit durations.
+- Realized round-trip outcomes where reconstructable.
+- Contract creator and disclosed project-associated trading activity.
+
+Do not equate wallet count with unique human users.
+
+Separate gross trading volume from genuine net capital inflow.
+
+Add interactive transaction drilldowns with Etherscan links.
+
+# 8. Advanced bot intelligence
+
+Upgrade the existing `arc-heuristic-v1` system into an explainable, versioned classification engine.
+
+Recognize potential:
+
+1. Liquidity snipers.
+2. New-pair scanner strategies.
+3. Copy-trading strategies.
+4. Momentum strategies.
+5. Arbitrage bots.
+6. MEV searchers.
+7. Market-making strategies.
+8. Project-associated wallets.
+9. Unknown or insufficiently classified participants.
+
+Distinguish automated transaction execution from automated investment decisions.
+
+Analyze:
+
+- First-block entry.
+- Gas and priority fee behavior.
+- Previous launch participation.
+- Trade timing.
+- Repeated execution patterns.
+- Funding history.
+- Related-wallet behavior.
+- Trading contracts.
+- Time between buys and sells.
+- Cross-token strategy patterns.
+- Rapid round trips.
+- Copy-trading correlation.
+
+Every classification must expose its supporting evidence and uncertainty.
+
+Do not treat fresh wallets, high gas fees, rapid buys or bot-interface use as conclusive proof of autonomous trading.
+
+Show high-confidence classifications separately from heuristic estimates.
+
+Never silently assign a bot probability to unclassified wallets.
+
+Compute automated buy volume and sell volume using well-documented attribution rules.
+
+Provide a bot-classification explanation panel for every analyzed wallet.
+
+# 9. Professional wallet explorer
+
+For each wallet, implement:
+
+- ETH balance where available.
+- Token trading history.
+- First activity date.
+- Initial funding transactions.
+- Trading across recent token launches.
+- Purchases and sales of the selected token.
+- ETH notional bought and sold.
+- Average acquisition and disposal timing.
+- Realized trading outcomes when calculable.
+- Known smart-contract interaction history.
+- Related-wallet evidence.
+- Bot classification and explanation.
+- Wallet activity timeline.
+- External explorer links.
+
+Only claim two wallets are controlled by the same actor when strong evidence exists.
+
+Keep weak associations clearly labeled.
+
+# 10. Historical token comparison engine
+
+Let users select two or more saved Ethereum tokens.
+
+Normalize timelines using each token's first verifiable public trading event.
+
+Compare equivalent intervals:
+
+- First 1 minute.
+- First 5 minutes.
+- First 15 minutes.
+- First 30 minutes.
+- First hour.
+- First 6 hours.
+- First 24 hours.
+- Custom range.
+
+Compare liquidity, gross buying, gross selling, automated activity, wallet participation, large-wallet concentration and retention.
+
+Include $SISH as an optional test reference.
+
+Do not assume that differences in token performance were caused by a single factor.
+
+Show data-coverage differences and uncertainty before ranking launches.
+
+# 11. Advanced future launch planner
+
+Transform the existing planner into a step-by-step, data-informed planning tool.
+
+Inputs must include:
+
+- Token name and ticker.
+- Planned contract address, if known.
+- Initial liquidity budget.
+- Initial token allocation to liquidity.
+- Planned pool type.
+- Expected trading start.
+- Contract settings.
+- Target gross buy volume.
+- Selected automated-trader metrics.
+- Target observation period.
+- Relevant past launches for comparison.
+
+Generate a structured plan covering:
+
+**Phase 1 — Historical research**
+
+Compare past tokens and identify observable launch characteristics.
+
+**Phase 2 — Contract and security preparation**
+
+Check token configuration, verified code, permissions and buy/sell functionality.
+
+**Phase 3 — Liquidity planning**
+
+Calculate pool reserve ratios, expected execution price impact and scenario sensitivity.
+
+**Phase 4 — Indexing and monitoring preparation**
+
+Ensure RPC access, on-chain event detection and dashboard monitoring function before launch.
+
+**Phase 5 — Trading activation**
+
+Verify pool deployment, liquidity and first successful swaps.
+
+**Phase 6 — Live observation**
+
+Track real trading activity, automated-wallet signals, market conditions, concentration and potential reversals.
+
+**Phase 7 — Post-launch evaluation**
+
+Produce a factual performance report and comparison with historical launches.
+
+Support user-selected intervals rather than assuming the optimal launch evaluation period is always one hour.
+
+Provide liquidity what-if simulations for 0.5, 1, 2, 3, 5, 10 and custom ETH amounts.
+
+Clearly distinguish hypothetical scenarios, historical evidence and actual observations.
+
+Do not invent trading demand, guaranteed bot volumes, price targets or investment returns.
+
+Do not use self-trading or fake buying activity to manufacture market signals.
+
+# 12. Market-condition analysis
+
+Introduce a Market Conditions panel using properly sourced data.
+
+Where reliable data is available, display:
+
+- Ethereum gas conditions.
+- ETH price volatility.
+- Recent Ethereum token-launch activity.
+- DEX swap activity.
+- Average transaction execution costs.
+- Liquidity and trading conditions.
+- Recent bot-attributed activity, with classification limitations.
+
+Explain whether conditions appear favorable or unfavorable for the selected research goal, with supporting measurements.
+
+Avoid claiming an exact optimal launch minute or guaranteed outcome.
+
+Allow the planner to update its scenario assumptions when actual conditions change.
+
+# 13. Dashboard improvement
+
+Preserve the existing ARC visual identity while improving analytical depth.
+
+Maintain these seven core pages:
+
+- Overview
+- Token Analyzer
+- Launch Planner
+- Bot Intelligence
+- Wallet Explorer
+- Token History
+- Data & Settings
+
+Add deeper interfaces within these pages rather than creating unnecessary routes.
+
+Prioritize intuitive analysis, responsive layouts, information hierarchy and consistent data states.
+
+Every KPI must have a tooltip documenting its exact formula and limitations.
+
+Implement:
+
+- Professional chart interactions.
+- Crosshair synchronized tooltips.
+- Clickable wallet and transaction rows.
+- Transaction filters.
+- Data-coverage badges.
+- Data freshness indicators.
+- Loading skeletons.
+- Honest empty states.
+- Error recovery controls.
+- Exportable CSV and JSON reports.
+- Reproducible analysis settings.
+- Saved filter presets.
+
+Ensure all navigation links, buttons, inputs and exports work correctly.
+
+# 14. Comprehensive testing
+
+Create thorough unit, integration, regression and end-to-end test coverage.
+
+Test:
+
+- ERC-20 input validation.
+- Token metadata.
+- Pool discovery.
+- V2/V3/V4 event decoding.
+- ETH/WETH valuation.
+- Multihop trade deduplication.
+- Historical date-range selection.
+- Intervals longer than 24 hours.
+- Custom start/end timestamps.
+- Wallet behavior calculations.
+- Bot scoring.
+- Aggregation arithmetic.
+- RPC failures and rate limiting.
+- Interrupted indexing recovery.
+- Reorganizations.
+- Multiple token switching.
+- Token comparison.
+- Database persistence.
+- Data exports.
+- Mobile navigation.
+- GitHub Pages routing and asset loading.
+
+Use real historical Ethereum transactions as regression fixtures, including the $SISH V2 sample already stored in the repository.
+
+For real-chain integration tests, compare decoded results against independently verified blockchain records.
+
+Maintain separate deterministic offline tests and network-dependent integration tests.
+
+Ensure a passing offline test suite is not represented as proof that external RPC-dependent functionality works.
+
+# 15. Verification of completion
+
+Run:
+
+- Dependency installation.
+- TypeScript checks.
+- Linting.
+- Unit tests.
+- Integration tests where services are available.
+- Production build.
+- GitHub Pages export validation.
+- Backend build and migration validation.
+- End-to-end UI tests.
+
+Resolve all errors introduced by the implementation.
+
+Create `docs/PHASE2_RESULTS.md` containing:
+
+1. Architecture changes.
+2. Implemented features.
+3. Tests executed and actual outcomes.
+4. Real transactions used for validation.
+5. Supported protocols.
+6. Known unsupported cases.
+7. Historical indexing performance measurements.
+8. Backend deployment instructions.
+9. Required environment variables.
+10. Remaining risks.
+
+Never mark tests as passed unless they actually ran successfully.
+
+# 16. Final deliverables
+
+Deliver changes in the current repository, with:
+
+- Working Next.js frontend.
+- Accurate Ethereum on-chain indexing.
+- Persistent backend architecture.
+- Deep wallet analysis.
+- Evidence-based bot intelligence.
+- Historical token comparison.
+- Configurable launch analysis.
+- Data-driven launch planning.
+- Reliable exports.
+- Updated documentation.
+- Automated tests.
+- Functional GitHub Pages deployment configuration.
+
+**Final objective:** ARC must become a trustworthy research platform where I can enter any Ethereum ERC-20 contract address, select any supported analysis period, investigate real buyers and automated activity, compare historical token launches and generate an evidence-based plan for a future launch.
+
+Implement the complete achievable scope in this workflow. Where third-party infrastructure or credentials are unavailable, provide functioning local components, explicit configuration instructions, tests and accurate status reporting rather than pretending the external service is deployed.

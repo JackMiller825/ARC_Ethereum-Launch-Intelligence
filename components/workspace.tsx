@@ -1,8 +1,9 @@
 "use client";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { analyzeToken } from '@/lib/chain/analyze';
-import { clearWorkspace, defaultPlaybook, defaultSettings, listSnapshots, loadLabels, loadPlaybook, loadSettings, saveLabel, savePlaybook, saveSettings, saveSnapshot } from '@/lib/store/idb';
-import type { AnalysisSuccess, AppSettings, Playbook, ProgressUpdate, WalletLabel, WindowSpec } from '@/lib/types';
+import { canonicalAddress, emptyCatalog, rememberToken, toggleFavorite as flipFavorite } from '@/lib/analytics/session';
+import { clearWorkspace, defaultPlaybook, defaultSettings, listSnapshots, loadCatalog, loadLabels, loadPlaybook, loadSettings, saveCatalog, saveLabel, savePlaybook, saveSettings, saveSnapshot } from '@/lib/store/idb';
+import type { AnalysisSuccess, AppSettings, LibraryCatalog, Playbook, ProgressUpdate, WalletLabel, WindowSpec } from '@/lib/types';
 
 type WorkspaceValue = {
   ready: boolean;
@@ -17,6 +18,8 @@ type WorkspaceValue = {
   updateLabel: (label: WalletLabel) => Promise<void>;
   progress: ProgressUpdate | null;
   error: string;
+  catalog: LibraryCatalog;
+  toggleFavorite: (address: string) => Promise<void>;
   analyze: (address: string, window: WindowSpec) => Promise<AnalysisSuccess | null>;
   cancel: () => void;
   reset: () => Promise<void>;
@@ -30,6 +33,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState<AnalysisSuccess | null>(null);
   const [playbook, setPlaybook] = useState<Playbook>(defaultPlaybook());
   const [labels, setLabels] = useState<WalletLabel[]>([]);
+  const [catalog, setCatalog] = useState<LibraryCatalog>(emptyCatalog());
   const [progress, setProgress] = useState<ProgressUpdate | null>(null);
   const [error, setError] = useState('');
   const [ready, setReady] = useState(false);
@@ -37,20 +41,21 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([loadSettings(), listSnapshots(), loadPlaybook(), loadLabels()]).then(([nextSettings, nextSnapshots, nextPlaybook, nextLabels]) => {
+    Promise.all([loadSettings(), listSnapshots(), loadPlaybook(), loadLabels(), loadCatalog()]).then(([nextSettings, nextSnapshots, nextPlaybook, nextLabels, nextCatalog]) => {
       if (cancelled) return;
       setSettings(nextSettings);
       setSnapshots(nextSnapshots);
       setActive(nextSnapshots[0] || null);
       setPlaybook(nextPlaybook);
       setLabels(nextLabels);
+      setCatalog(nextCatalog);
       setReady(true);
     }).catch(() => { if (!cancelled) setReady(true); });
     return () => { cancelled = true; };
   }, []);
 
   const value = useMemo<WorkspaceValue>(() => ({
-    ready, settings, snapshots, active, setActive, playbook, labels, progress, error,
+    ready, settings, snapshots, active, setActive, playbook, labels, catalog, progress, error,
     updateSettings: async (next) => { setSettings(next); await saveSettings(next); },
     updatePlaybook: async (next) => { setPlaybook(next); await savePlaybook(next); },
     updateLabel: async (label) => {
@@ -58,12 +63,18 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setLabels((current) => [...current.filter((item) => item.address.toLowerCase() !== label.address.toLowerCase()), label]);
     },
     cancel: () => abortRef.current?.abort(),
+    toggleFavorite: async (address) => {
+      const next = flipFavorite(catalog, address);
+      setCatalog(next);
+      await saveCatalog(next);
+    },
     reset: async () => {
       await clearWorkspace();
       setSnapshots([]);
       setActive(null);
       setPlaybook(defaultPlaybook());
       setLabels([]);
+      setCatalog(emptyCatalog());
     },
     analyze: async (address, window) => {
       abortRef.current?.abort();
@@ -96,12 +107,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         setError(result.reason);
         return null;
       }
+      const remembered = rememberToken(catalog, canonicalAddress(result.token.address));
+      setCatalog(remembered);
+      await saveCatalog(remembered);
       setActive(result);
       await saveSnapshot(result);
       setSnapshots(await listSnapshots());
       return result;
     },
-  }), [ready, settings, snapshots, active, playbook, labels, progress, error]);
+  }), [ready, settings, snapshots, active, playbook, labels, catalog, progress, error]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

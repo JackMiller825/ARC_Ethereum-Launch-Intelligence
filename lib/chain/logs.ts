@@ -1,7 +1,7 @@
 import type { AbiEvent, Log } from 'viem';
 import { decodeEventLog } from 'viem';
 import { parseHexOrDec } from '../format';
-import { createChainClient, rpcFailureKind, throwIfAborted } from './client';
+import { backoffMs, createChainClient, rpcFailureKind, throwIfAborted } from './client';
 
 export type ChainLog = {
   address: string;
@@ -47,15 +47,25 @@ async function rpcRange(urls: string[], params: Record<string, unknown>): Promis
   let split = false;
   let last: unknown;
   for (const url of urls) {
-    throwIfAborted();
-    try {
-      const client = createChainClient(url);
-      const logs = await client.getLogs(params as never);
-      return logs.map((log) => normalizeRpc(log, 'rpc'));
-    } catch (error) {
-      last = error;
-      const kind = rpcFailureKind(error);
-      if (kind === 'range' || kind === 'toomany') split = true;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      throwIfAborted();
+      try {
+        const client = createChainClient(url);
+        const logs = await client.getLogs(params as never);
+        return logs.map((log) => normalizeRpc(log, 'rpc'));
+      } catch (error) {
+        last = error;
+        const kind = rpcFailureKind(error);
+        if (kind === 'range' || kind === 'toomany') {
+          split = true;
+          break;
+        }
+        if (kind === 'other' && attempt === 0) {
+          await new Promise((resolve) => setTimeout(resolve, backoffMs(attempt)));
+          continue;
+        }
+        break;
+      }
     }
   }
   if (split) return 'split';

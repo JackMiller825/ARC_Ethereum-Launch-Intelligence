@@ -45,6 +45,14 @@ DATABASE_URL=postgres://arc:arc@localhost:5432/arc npm run worker -- 0xYourToken
 
 The image does not contain a wallet, a seed phrase, or a trading key.
 
+## Backend status
+
+`GET /api/status` on a `next start` or Docker web process reports RPC reachability and whether `DATABASE_URL` answered `select 1`. The `worker` field stays `observed: false`. Source code in `worker/indexer.ts` is not a running indexer.
+
+Migrations run in order from `db/migrations/` when the worker or `persist` calls `migrate`. `002_indexes.sql` only adds indexes. Rollback of that file is `DROP INDEX` on `economic_trades_token_block_idx`, `raw_logs_block_idx`, `pools_token0_idx`, and `pools_token1_idx`. This environment did not start Postgres, so that SQL was reviewed and listed by a unit test, not applied to a live database.
+
+Required variables are in `.env.example`: `BLOCKSCOUT_BASE_URL`, `ETHEREUM_RPC_URL`, `DATABASE_URL`, and the optional `INDEX_TOKEN`, `INDEX_MINUTES`, and `INDEX_MODE`. None of them are baked into the GitHub Pages bundle.
+
 ## API
 
 These routes exist on the Docker / `next start` deployment. They are not part of the static Pages export.

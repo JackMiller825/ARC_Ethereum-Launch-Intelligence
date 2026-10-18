@@ -6,6 +6,7 @@ import { DemoBadge, MetricTile, PageHeading, Pill, StatProgress, TradeTable, Tre
 import { useWorkspace } from '@/components/workspace';
 import { aggregate, durations, selectTrades } from '@/lib/data';
 import { formatEth, shortAddr } from '@/lib/format';
+import { KPI_HINTS } from '@/lib/analytics/formulas';
 import { computeKpis } from '@/lib/chain/kpis';
 import { tradesInView } from '@/lib/intervals';
 import type { Interval } from '@/lib/types';
@@ -38,17 +39,17 @@ export default function Overview() {
     {ready && !active && !demo && <div className="data-boundary"><ShieldCheck size={20} /><div><strong>No indexed token yet</strong><p>Overview figures stay blank until you analyze a contract. Synthetic trades are not shown unless demo mode is enabled in Data &amp; settings.</p></div></div>}
     {partial && <div className="data-boundary"><ShieldCheck size={20} /><div><strong>Stored window is shorter than this selection</strong><p>This snapshot covers {active?.window.minutes} minutes, and the figures use that full window. Open the analyzer to index a longer interval.</p></div></div>}
     <div className="metrics-grid">
-      <MetricTile label="GROSS BUY VOLUME" value={buy === '—' ? '—' : `${buy} ETH`} sub={demo ? 'Synthetic fixtures' : active ? 'Independent wallets · valued WETH routes' : 'Not indexed'} icon={TrendingUp} tone="green" />
-      <MetricTile label="AUTOMATED BUY ESTIMATE" value={bot === '—' ? '—' : `${bot} ETH`} sub={share ? `${share.toFixed(1)}% high+medium evidence` : 'No attributed buys'} icon={Bot} tone="blue" />
-      <MetricTile label="NET ETH FLOW" value={net === '—' ? '—' : `${net} ETH`} sub="Valued buys minus valued sells" icon={Activity} tone="green" />
-      <MetricTile label="UNIQUE BUYER WALLETS" value={buyers} sub="Signers, not unique humans" icon={Wallet} />
+      <MetricTile hint={KPI_HINTS.grossBuy} label="GROSS BUY VOLUME" value={buy === '—' ? '—' : `${buy} ETH`} sub={demo ? 'Synthetic fixtures' : active ? 'Independent wallets · valued WETH routes' : 'Not indexed'} icon={TrendingUp} tone="green" />
+      <MetricTile hint={KPI_HINTS.botBuy} label="AUTOMATED BUY ESTIMATE" value={bot === '—' ? '—' : `${bot} ETH`} sub={share ? `${share.toFixed(1)}% high+medium evidence` : 'No attributed buys'} icon={Bot} tone="blue" />
+      <MetricTile hint={KPI_HINTS.net} label="NET ETH FLOW" value={net === '—' ? '—' : `${net} ETH`} sub="Valued buys minus valued sells" icon={Activity} tone="green" />
+      <MetricTile hint={KPI_HINTS.buyers} label="UNIQUE BUYER WALLETS" value={buyers} sub="Signers, not unique humans" icon={Wallet} />
     </div>
     <div className="dashboard-grid">
       <section className="panel chart-panel"><div className="panel-header"><div><div className="panel-eyebrow">CAPITAL FLOW</div><h3>{active ? active.token.symbol : 'Cumulative trading activity'}</h3></div><Pill kind={demo ? 'amber' : active ? 'green' : 'muted'}>{demo ? 'Illustrative' : active ? 'Chain logs' : 'Empty'}</Pill></div><TrendChart trades={trades} label={demo ? 'Demo cumulative volume' : 'Indexed cumulative volume'} /></section>
       <section className="panel insight-panel"><div className="panel-header"><div><div className="panel-eyebrow">ATTRIBUTION</div><h3>Strategy pulse</h3></div><Bot size={18} className="subtle-icon" /></div><p className="panel-desc">High and medium evidence are the automated estimate. Low and unknown stay outside that total.</p><StatProgress label="Automated share of valued buys" value={share ? `${share.toFixed(1)}%` : '—'} percentage={share} /><StatProgress label="Gross buys vs 20 ETH scenario" value={live ? `${Math.min(100, Number(live.grossBuyWei) / 1e18 / 20 * 100).toFixed(0)}%` : '—'} percentage={live ? Number(live.grossBuyWei) / 1e18 / 20 * 100 : 0} color="blue" /><div className="insight-note"><ShieldCheck size={17} /><span>Evidence labels are ordinal. They are not a probability that a wallet is a bot.</span></div></section>
     </div>
     <div className="dashboard-grid lower">
-      <section className="panel"><div className="panel-header"><div><div className="panel-eyebrow">RECENT ACTIVITY</div><h3>Transactions</h3></div><Link href="/analysis" className="text-link">Full analysis <ArrowUpRight size={15} /></Link></div><TradeTable trades={trades} max={6} /></section>
+      <section className="panel"><div className="panel-header"><div><div className="panel-eyebrow">RECENT ACTIVITY</div><h3>Transactions</h3></div><Link href="/analysis" className="text-link">Full analysis <ArrowUpRight size={15} /></Link></div><TradeTable trades={trades.slice(0, 8)} /></section>
       <section className="panel tokens-panel"><div className="panel-header"><div><div className="panel-eyebrow">WATCHLIST</div><h3>Token workspace</h3></div><Link href="/history" className="text-link">View all <ArrowUpRight size={15} /></Link></div>{snapshots.length === 0 && <div className="token-list-row"><div className="token-badge">CA</div><div><strong>No saved tokens</strong><small>Analyze any ERC-20 to pin it here</small></div></div>}{snapshots.map((token, i) => <Link className="token-list-row" href={`/analysis?ca=${token.token.address}`} key={token.token.address}><div className={`token-badge badge-${i % 3}`}>{token.token.symbol.slice(0, 2)}</div><div><strong>{token.token.symbol}</strong><small>{shortAddr(token.token.address)}</small></div><span className="token-demo">{token.window.minutes}m</span><ArrowUpRight size={16} /></Link>)}</section>
     </div>
   </>;

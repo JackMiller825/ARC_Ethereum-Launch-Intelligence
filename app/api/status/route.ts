@@ -35,5 +35,6 @@ export async function GET() {
     database,
     cache: cachedStatus(),
     syntheticFallback: false,
+    worker: { observed: false, note: 'This API process does not supervise the indexer. A database ping only means Postgres answered. The worker runs via npm run worker or Docker Compose and is not deployed with GitHub Pages.' },
   });
 }

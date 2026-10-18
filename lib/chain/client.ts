@@ -36,6 +36,11 @@ export async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T, in
   return out;
 }
 
+export function backoffMs(attempt: number) {
+  const step = Math.max(0, Math.floor(attempt));
+  return Math.min(8000, 250 * 2 ** step);
+}
+
 export function throwIfAborted(signal?: AbortSignal) {
   if (signal?.aborted) throw new Error('Analysis cancelled.');
 }

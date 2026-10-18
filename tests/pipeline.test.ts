@@ -146,7 +146,7 @@ describe('kpis and labels', () => {
 
   it('explains turnover without promising a result', () => {
     expect(turnoverNote(4)).toContain('4.00×');
-    expect(clampMinutes(99999)).toBe(10080);
+    expect(clampMinutes(99999)).toBe(43200);
     expect(() => parseWindow({ mode: 'launch', minutes: 0 })).toThrow();
   });
 

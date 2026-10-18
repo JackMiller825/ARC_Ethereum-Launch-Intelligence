@@ -1,8 +1,8 @@
-export type Interval = '5m' | '15m' | '30m' | '1h' | '2h' | '6h' | '12h' | '24h' | '3d' | '7d' | 'custom';
+export type Interval = '1m' | '3m' | '5m' | '10m' | '15m' | '30m' | '1h' | '2h' | '3h' | '6h' | '12h' | '24h' | '3d' | '7d' | '14d' | '30d' | 'custom';
 export type Confidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
 export type Protocol = 'v2' | 'v3' | 'v4';
 export type Valuation = 'weth-pool' | 'multihop-weth' | 'unsupported';
-export type BotClass = 'Sniper' | 'New-pair scanner' | 'Copy-trading' | 'Momentum' | 'Arbitrage' | 'Sandwich' | 'Unknown';
+export type BotClass = 'Sniper' | 'New-pair scanner' | 'Copy-trading' | 'Momentum' | 'Arbitrage' | 'Sandwich' | 'MEV' | 'Market-maker' | 'Unknown';
 
 export type Token = {
   address: string;
@@ -113,6 +113,9 @@ export type Coverage = {
   logSource: string;
   reconciliation: { rawSwapLogs: number; economicTrades: number; poolWethWei: string; economicWethWei: string; matched: boolean };
   tipHash: string;
+  /** Present on analyses produced after phase 2. Older snapshots omit it. */
+  pct?: number;
+  provisional?: boolean;
 };
 
 export type TimelineMark = {
@@ -150,7 +153,19 @@ export type AnalysisUnavailable = {
 };
 
 export type AnalysisResult = AnalysisSuccess | AnalysisUnavailable;
-export type ProgressUpdate = { stage: string; detail: string; pct: number };
+export type ProgressUpdate = {
+  stage: string;
+  detail: string;
+  pct: number;
+  blocksScanned?: number;
+  targetBlocks?: number;
+  pools?: number;
+  swaps?: number;
+  coveragePct?: number;
+  provisional?: boolean;
+  skipped?: number;
+  errors?: string[];
+};
 export type Metric = { name: string; value: string; change: string; direction?: 'up' | 'down' | 'flat' };
 
 export type Playbook = {
@@ -164,9 +179,23 @@ export type Playbook = {
   botShare: number;
   botSellRatio: number;
   windowMinutes: number;
+  tokenName: string;
+  ticker: string;
+  plannedAddress: string;
+  tokenToLp: string;
+  poolType: 'v2' | 'v3' | 'v4';
+  expectedStart: string;
   completed: string[];
   milestones: { id: string; label: string; note: string }[];
   updatedAt: number;
+};
+
+export type ComparisonGroup = { id: string; name: string; addresses: string[] };
+
+export type LibraryCatalog = {
+  favorites: string[];
+  recents: string[];
+  groups: ComparisonGroup[];
 };
 
 export type AppSettings = {

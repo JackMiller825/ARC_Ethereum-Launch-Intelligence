@@ -1,6 +1,6 @@
 # ARC / Ethereum Launch Intelligence
 
-Research terminal for any Ethereum ERC-20. Paste a contract, pick a window from 1 minute to 7 days, and read decoded Uniswap V2, V3, and V4 swaps. Wallet labels are evidence scores, not identities. The launch planner compares scenarios with saved history and does not forecast buyers or returns.
+Research terminal for any Ethereum ERC-20. Paste a contract, pick a window from 1 minute to 30 days, and read decoded Uniswap V2, V3, and V4 swaps. Wallet labels are evidence scores from `arc-heuristic-v2`, not identities. The launch planner compares scenarios with saved history and does not forecast buyers or returns.
 
 ## What is live
 
@@ -8,8 +8,8 @@ Research terminal for any Ethereum ERC-20. Paste a contract, pick a window from 
 |---|---|
 | Seven ARC pages | Preserved |
 | Any mainnet ERC-20 | Indexed from pool logs, not transfer counts |
-| Launch, trailing, and absolute windows | 1–10,080 minutes |
-| Bot evidence and wallet drilldown | `arc-heuristic-v1` |
+| Launch, rolling, and absolute windows | 1–43,200 minutes |
+| Bot evidence and wallet drilldown | `arc-heuristic-v2` |
 | Browser history | IndexedDB |
 | Postgres worker | `docker compose` and `npm run worker` |
 | Synthetic trades | Settings toggle, off by default |

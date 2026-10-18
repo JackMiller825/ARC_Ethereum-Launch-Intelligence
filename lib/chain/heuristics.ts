@@ -66,11 +66,24 @@ export function classifyTrades(trades: Trade[], ctx: Context): Trade[] {
       confidence = bump(confidence, isContract ? 'HIGH' : 'MEDIUM');
       evidence.push('Same-block buy then sell surrounds another wallet buy. This is sandwich-pattern evidence, not an identity claim.');
     }
+    const sameBlockFlip = mine.some((item) => item.side !== trade.side && item.blockNumber === trade.blockNumber && item.id !== trade.id);
+    if (classification === 'Unknown' && sameBlockFlip && !sandwich.has(trade.id)) {
+      classification = 'MEV';
+      confidence = bump(confidence, isContract ? 'MEDIUM' : 'LOW');
+      evidence.push('Same-block buy and sell without a surrounded victim. A searcher or a person using a router can both produce this. It is not an identity.');
+    }
     const oppositeSoon = mine.some((item) => item.side !== trade.side && Math.abs(item.timestamp - trade.timestamp) <= 120 && item.id !== trade.id);
     if (classification === 'Unknown' && oppositeSoon) {
       classification = 'Arbitrage';
       confidence = bump(confidence, 'MEDIUM');
       evidence.push('Opposite-side round trip within 120 seconds.');
+    }
+    const bothSides = mine.some((item) => item.side === 'BUY') && mine.some((item) => item.side === 'SELL');
+    const span = mine.length ? Math.max(...mine.map((item) => item.timestamp)) - Math.min(...mine.map((item) => item.timestamp)) : 0;
+    if (classification === 'Unknown' && bothSides && mine.length >= 4 && span > 180) {
+      classification = 'Market-maker';
+      confidence = bump(confidence, 'LOW');
+      evidence.push('Both sides across more than three minutes and at least four trades. Two-sided flow is a weak market-making hint, not proof of a quoting algorithm.');
     }
     const follows = [...followCount.entries()].find(([key, count]) => key.startsWith(trade.wallet.toLowerCase() + '->') && count >= 3);
     if (classification === 'Unknown' && follows) {
