@@ -24,6 +24,7 @@ export function MetricTile({ label, value, sub, icon: Icon, tone = 'neutral', hi
   return <div className="metric-tile" title={hint}><div className="metric-top"><span>{label}</span><div className={`metric-icon tone-${tone}`}><Icon size={17} /></div></div><div className="metric-value">{value}</div><div className="metric-foot"><span className={`metric-indicator tone-${tone}`} />{sub}</div></div>;
 }
 export function TrendChart({ trades, label = 'Cumulative buy and sell volume' }: { trades: Trade[]; label?: string }) {
+  const [hover, setHover] = useState<number | null>(null);
   const bins = Array.from({ length: 12 }, (_, i) => {
     const max = Math.max(1, ...trades.map((t) => t.minute)) + 1;
     const arr = trades.filter((t) => t.minute >= i * max / 12 && t.minute < (i + 1) * max / 12 && !t.isProject);
@@ -34,7 +35,8 @@ export function TrendChart({ trades, label = 'Cumulative buy and sell volume' }:
   const sells = bins.map((x) => (cs += x.s));
   const peak = Math.max(1, ...buys, ...sells);
   const path = (arr: number[]) => arr.map((x, i) => `${i ? 'L' : 'M'} ${48 + i * 57} ${177 - (x / peak) * 150}`).join(' ');
-  return <div className="trend-chart"><div className="chart-legend"><span><i className="legend-buy" /> Gross buys</span><span><i className="legend-sell" /> Gross sells</span></div><svg viewBox="0 0 740 215" role="img" aria-label={label} preserveAspectRatio="none">{[27, 77, 127, 177].map((y, i) => <g key={y}><line x1="48" y1={y} x2="697" y2={y} stroke="#29344a" strokeDasharray="4 5" /><text x="8" y={y + 4} fill="#74839b" fontSize="12">{(peak * (3 - i) / 3).toFixed(1)}</text></g>)}<path d={`${path(buys)} L 675 177 L 48 177 Z`} fill="url(#areaGreen)" opacity=".22" /><defs><linearGradient id="areaGreen" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#6cecaa" /><stop offset="1" stopColor="#6cecaa" stopOpacity="0" /></linearGradient></defs><path d={path(buys)} stroke="#65e6aa" strokeWidth="3" fill="none" strokeLinejoin="round" /><path d={path(sells)} stroke="#fbab7a" strokeWidth="2.2" fill="none" strokeLinejoin="round" strokeDasharray="6 6" />{['T0', '25%', '50%', '75%', 'End'].map((n, i) => <text key={n} x={48 + i * 156} y="205" fill="#74839b" fontSize="12" textAnchor="middle">{n}</text>)}</svg></div>;
+  const x = hover === null ? null : 48 + hover * 57;
+  return <div className="trend-chart"><div className="chart-legend"><span><i className="legend-buy" /> Gross buys</span><span><i className="legend-sell" /> Gross sells</span>{hover !== null && <span>{`Bin ${hover + 1}: buy ${buys[hover].toFixed(4)} ETH · sell ${sells[hover].toFixed(4)} ETH cumulative`}</span>}</div><svg viewBox="0 0 740 215" role="img" aria-label={label} preserveAspectRatio="none" onMouseLeave={() => setHover(null)} onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); const ratio = (event.clientX - rect.left) / rect.width; const vx = ratio * 740; const index = Math.max(0, Math.min(11, Math.round((vx - 48) / 57))); setHover(index); }}>{[27, 77, 127, 177].map((y, i) => <g key={y}><line x1="48" y1={y} x2="697" y2={y} stroke="#29344a" strokeDasharray="4 5" /><text x="8" y={y + 4} fill="#74839b" fontSize="12">{(peak * (3 - i) / 3).toFixed(1)}</text></g>)}<path d={`${path(buys)} L 675 177 L 48 177 Z`} fill="url(#areaGreen)" opacity=".22" /><defs><linearGradient id="areaGreen" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#6cecaa" /><stop offset="1" stopColor="#6cecaa" stopOpacity="0" /></linearGradient></defs><path d={path(buys)} stroke="#65e6aa" strokeWidth="3" fill="none" strokeLinejoin="round" /><path d={path(sells)} stroke="#fbab7a" strokeWidth="2.2" fill="none" strokeLinejoin="round" strokeDasharray="6 6" />{x !== null && <line x1={x} y1="20" x2={x} y2="177" stroke="#80aaff" strokeDasharray="3 3" /> }{['T0', '25%', '50%', '75%', 'End'].map((n, i) => <text key={n} x={48 + i * 156} y="205" fill="#74839b" fontSize="12" textAnchor="middle">{n}</text>)}</svg></div>;
 }
 const bar: Record<Confidence, number> = { HIGH: 100, MEDIUM: 66, LOW: 33, UNKNOWN: 8 };
 export function TradeTable({ trades }: { trades: Trade[] }) {
@@ -58,6 +60,18 @@ export function ExportButton({ trades, filename = 'arc-trades.csv' }: { trades: 
     URL.revokeObjectURL(url);
   }
   return <button className="btn secondary" onClick={download}><Download size={16} /> Export CSV</button>;
+}
+export function ExportJson({ payload, filename }: { payload: unknown; filename: string }) {
+  function download() {
+    const blob = new Blob([JSON.stringify({ methodology: 'ARC economic trades. ETH totals exclude project wallets and routes without a WETH hop. Bot totals are HIGH plus MEDIUM evidence only.', generatedAt: new Date().toISOString(), payload }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  return <button className="btn secondary" type="button" onClick={download}><Download size={16} /> Export JSON</button>;
 }
 export function DemoBadge() {
   return <span className="demo-banner"><span /> SYNTHETIC DEMO DATA · Not actual market activity</span>;

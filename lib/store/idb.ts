@@ -28,6 +28,8 @@ export const defaultPlaybook = (): Playbook => ({
   tokenToLp: '',
   poolType: 'v2',
   expectedStart: '',
+  plannedSupply: '',
+  qualityThreshold: 90,
   completed: [],
   milestones: [],
   updatedAt: Date.now(),

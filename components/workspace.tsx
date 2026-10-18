@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { analyzeToken } from '@/lib/chain/analyze';
+import { snapshotCovers, viewFromSnapshot } from '@/lib/analytics/reuse';
 import { canonicalAddress, emptyCatalog, rememberToken, toggleFavorite as flipFavorite } from '@/lib/analytics/session';
 import { clearWorkspace, defaultPlaybook, defaultSettings, listSnapshots, loadCatalog, loadLabels, loadPlaybook, loadSettings, saveCatalog, saveLabel, savePlaybook, saveSettings, saveSnapshot } from '@/lib/store/idb';
 import type { AnalysisSuccess, AppSettings, LibraryCatalog, Playbook, ProgressUpdate, WalletLabel, WindowSpec } from '@/lib/types';
@@ -81,7 +82,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       const controller = new AbortController();
       abortRef.current = controller;
       setError('');
-      setProgress({ stage: 'Start', detail: 'Validating the contract', pct: 2 });
+      const existing = snapshots.find((item) => item.token.address.toLowerCase() === address.trim().toLowerCase());
+      if (existing && snapshotCovers(existing, window)) {
+        const view = viewFromSnapshot(existing, window);
+        setActive(view);
+        setProgress(null);
+        return view;
+      }
+      setProgress({ stage: 'Start', detail: 'Validating the contract', pct: 2, elapsedMs: 0, retries: 0 });
       const prior: Record<string, string[]> = {};
       for (const snap of snapshots) {
         if (snap.token.address.toLowerCase() === address.toLowerCase()) continue;

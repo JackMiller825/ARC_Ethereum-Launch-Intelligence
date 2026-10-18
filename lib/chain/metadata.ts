@@ -51,6 +51,9 @@ export async function readBlockscoutProfile(base: string, address: string, signa
   const holders = Number(token?.holders_count ?? token?.holders ?? NaN);
   return {
     holders: Number.isFinite(holders) ? holders : null,
+    name: typeof token?.name === 'string' ? token.name : null,
+    symbol: typeof token?.symbol === 'string' ? token.symbol : null,
+    decimals: Number.isFinite(Number(token?.decimals)) ? Number(token?.decimals) : null,
     verified: Boolean(profile?.is_verified),
     deployer: typeof profile?.creator_address_hash === 'string' ? getAddress(profile.creator_address_hash) : null,
     deployBlock,

@@ -60,6 +60,7 @@ export function classifyTrades(trades: Trade[], ctx: Context): Trade[] {
       classification = 'Sniper';
       confidence = bump(confidence, isContract ? 'HIGH' : 'MEDIUM');
       evidence.push(`Buy landed in block ${trade.blockNumber}, within one block of T0 ${ctx.t0Block}.`);
+      if (!isContract) evidence.push('Contradictory evidence: a first-block buy from an EOA is timing, not proof of an autonomous sniper.');
     }
     if (sandwich.has(trade.id)) {
       classification = 'Sandwich';

@@ -35,5 +35,7 @@ Deployment steps, the Pages URL, and the API map are in [docs/DEPLOYMENT.md](doc
 - Non-WETH routes without a same-transaction WETH hop are excluded from ETH totals and counted in the unsupported share.
 - V4 discovery is a wide `Initialize` scan. If every endpoint refuses it, V2/V3 results still return and the gap is listed.
 - GitHub Pages cannot host the Postgres worker. The static site indexes from the browser.
+- A window that runs past the chain tip stops at the tip. Those future minutes are not reported as zero trading.
+- Phase 3 measurements are in `docs/PHASE3_VALIDATION_REPORT.md`.
 
 No wallet connection, seed phrase, or automated purchase path is included.

@@ -1,5 +1,6 @@
 import { getAddress, isAddress, pad, parseAbi, type PublicClient } from 'viem';
 import { QUOTES, TOPIC, V2_FACTORIES, V3_FACTORY, V3_FEES, V4_POOL_MANAGER, WETH, ZERO } from './constants';
+import { backoffMs, createChainClient, mapLimit } from './client';
 import { fetchLogsWide, type ChainLog } from './logs';
 import { decodeLog } from './logs';
 import { initV4 } from './constants';
@@ -9,6 +10,19 @@ import { sameAddr } from '../format';
 const v2FactoryAbi = parseAbi(['function getPair(address,address) view returns (address)']);
 const v3FactoryAbi = parseAbi(['function getPool(address,address,uint24) view returns (address)']);
 const erc20Abi = parseAbi(['function token0() view returns (address)', 'function token1() view returns (address)', 'function fee() view returns (uint24)']);
+
+async function withRetry<T>(fn: () => Promise<T>) {
+  let last: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      last = error;
+      await new Promise((resolve) => setTimeout(resolve, backoffMs(attempt)));
+    }
+  }
+  throw last;
+}
 
 function topicAddress(address: string) {
   return pad(getAddress(address), { size: 32 });
@@ -49,44 +63,58 @@ export async function discoverPools(options: {
     pools.push(pool);
   };
 
-  for (const factory of V2_FACTORIES) {
-    for (const quote of QUOTES) {
-      if (sameAddr(quote, token)) continue;
-      try {
-        const pair = await options.client.readContract({
-          address: getAddress(factory.address),
-          abi: v2FactoryAbi,
-          functionName: 'getPair',
-          args: [token, getAddress(quote)],
-        });
-        if (!pair || sameAddr(pair, ZERO)) continue;
-        const meta = await readPair(options.client, pair);
-        if (!sameAddr(meta.token0, token) && !sameAddr(meta.token1, token)) continue;
-        add({ protocol: 'v2', address: meta.address, token0: meta.token0, token1: meta.token1, quote: getAddress(quote), discovery: `${factory.name} factory getPair`, factory: factory.address });
-      } catch (error) {
-        warnings.push(`${factory.name} ${quote.slice(0, 6)} lookup failed: ${error instanceof Error ? error.message : 'rpc error'}`);
+  const v2Jobs = V2_FACTORIES.flatMap((factory) => QUOTES.filter((quote) => !sameAddr(quote, token)).map((quote) => ({ factory, quote })));
+  await mapLimit(v2Jobs, 4, async ({ factory, quote }) => {
+    try {
+      let pair = await withRetry(() => options.client.readContract({
+        address: getAddress(factory.address),
+        abi: v2FactoryAbi,
+        functionName: 'getPair',
+        args: [token, getAddress(quote)],
+      }));
+      if ((!pair || sameAddr(pair, ZERO)) && sameAddr(quote, WETH)) {
+        for (const url of options.urls.slice(0, 2)) {
+          try {
+            const alt = await createChainClient(url).readContract({
+              address: getAddress(factory.address),
+              abi: v2FactoryAbi,
+              functionName: 'getPair',
+              args: [token, getAddress(quote)],
+            });
+            if (alt && !sameAddr(alt, ZERO)) {
+              pair = alt;
+              break;
+            }
+          } catch {
+            /* a zero from one endpoint is not proof the pair is absent */
+          }
+        }
       }
+      if (!pair || sameAddr(pair, ZERO)) return;
+      const meta = await readPair(options.client, pair);
+      if (!sameAddr(meta.token0, token) && !sameAddr(meta.token1, token)) return;
+      add({ protocol: 'v2', address: meta.address, token0: meta.token0, token1: meta.token1, quote: getAddress(quote), discovery: `${factory.name} factory getPair`, factory: factory.address });
+    } catch (error) {
+      warnings.push(`${factory.name} ${quote.slice(0, 6)} lookup failed: ${error instanceof Error ? error.message : 'rpc error'}`);
     }
-  }
+  });
 
-  for (const quote of QUOTES) {
-    if (sameAddr(quote, token)) continue;
-    for (const fee of V3_FEES) {
-      try {
-        const pool = await options.client.readContract({
-          address: getAddress(V3_FACTORY.address),
-          abi: v3FactoryAbi,
-          functionName: 'getPool',
-          args: [token, getAddress(quote), fee],
-        });
-        if (!pool || sameAddr(pool, ZERO)) continue;
-        const meta = await readPair(options.client, pool);
-        add({ protocol: 'v3', address: meta.address, token0: meta.token0, token1: meta.token1, quote: getAddress(quote), fee, discovery: 'Uniswap V3 factory getPool', factory: V3_FACTORY.address });
-      } catch {
-        /* fee tier miss is normal */
-      }
+  const v3Jobs = QUOTES.filter((quote) => !sameAddr(quote, token)).flatMap((quote) => V3_FEES.map((fee) => ({ quote, fee })));
+  await mapLimit(v3Jobs, 4, async ({ quote, fee }) => {
+    try {
+      const pool = await withRetry(() => options.client.readContract({
+        address: getAddress(V3_FACTORY.address),
+        abi: v3FactoryAbi,
+        functionName: 'getPool',
+        args: [token, getAddress(quote), fee],
+      }));
+      if (!pool || sameAddr(pool, ZERO)) return;
+      const meta = await readPair(options.client, pool);
+      add({ protocol: 'v3', address: meta.address, token0: meta.token0, token1: meta.token1, quote: getAddress(quote), fee, discovery: 'Uniswap V3 factory getPool', factory: V3_FACTORY.address });
+    } catch {
+      /* fee tier miss is normal */
     }
-  }
+  });
 
   try {
     const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`, { signal: options.signal, headers: { accept: 'application/json' } });

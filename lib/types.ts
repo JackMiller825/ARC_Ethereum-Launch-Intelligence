@@ -45,6 +45,8 @@ export type Trade = {
   blockNumber: number;
   txIndex: number;
   origin: 'chain' | 'demo';
+  gas?: string | null;
+  maxPriorityFeePerGas?: string | null;
 };
 
 export type WindowMode = 'launch' | 'trailing' | 'absolute';
@@ -165,6 +167,13 @@ export type ProgressUpdate = {
   provisional?: boolean;
   skipped?: number;
   errors?: string[];
+  blocksRemaining?: number;
+  routes?: number;
+  wallets?: number;
+  retries?: number;
+  missingRanges?: number;
+  elapsedMs?: number;
+  swapsPerSecond?: number;
 };
 export type Metric = { name: string; value: string; change: string; direction?: 'up' | 'down' | 'flat' };
 
@@ -185,6 +194,8 @@ export type Playbook = {
   tokenToLp: string;
   poolType: 'v2' | 'v3' | 'v4';
   expectedStart: string;
+  plannedSupply: string;
+  qualityThreshold: number;
   completed: string[];
   milestones: { id: string; label: string; note: string }[];
   updatedAt: number;

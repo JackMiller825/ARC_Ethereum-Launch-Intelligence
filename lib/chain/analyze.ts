@@ -3,13 +3,14 @@ import { formatToken, sameAddr } from '../format';
 import type { AnalysisResult, AuditEvent, CoverageItem, PoolInfo, ProgressUpdate, Trade, WindowSpec } from '../types';
 import { CHAIN_ID, TOPIC, WETH } from './constants';
 import { createChainClient, mapLimit, resolveRpcUrls, throwIfAborted } from './client';
+import { rankUrls } from './providers';
 import { decodeLiquidity, decodeSwap, type RawSwap } from './decode';
 import { discoverPools } from './discover';
 import { blankTrade, poolWethOutflow, reconcileTransaction, type TxMeta } from './economics';
 import { coverageScore } from '../analytics/coverage';
 import { classifyTrades, HEURISTIC_VERSION } from './heuristics';
 import { computeKpis } from './kpis';
-import { fetchLogs, findEarliestLog, type ChainLog } from './logs';
+import { fetchLogs, findEarliestLog, logStats, resetLogStats, type ChainLog } from './logs';
 import { readBlockscoutProfile, readErc20, tokenRecord } from './metadata';
 import { finalizedStatus } from './reorg';
 
@@ -28,12 +29,27 @@ type Options = {
 };
 
 export async function analyzeToken(options: Options): Promise<AnalysisResult> {
-  const progress = (stage: string, detail: string, pct: number, extra: Partial<ProgressUpdate> = {}) => options.onProgress?.({ stage, detail, pct, ...extra });
+  const started = Date.now();
+  resetLogStats();
+  const progress = (stage: string, detail: string, pct: number, extra: Partial<ProgressUpdate> = {}) => {
+    const elapsedMs = Date.now() - started;
+    const swaps = extra.swaps || 0;
+    options.onProgress?.({
+      stage,
+      detail,
+      pct,
+      elapsedMs,
+      retries: logStats.retries,
+      missingRanges: logStats.gaps,
+      swapsPerSecond: elapsedMs > 0 ? Number(((swaps * 1000) / elapsedMs).toFixed(2)) : 0,
+      ...extra,
+    });
+  };
   if (!isAddress(options.address)) {
     return { ok: false, origin: 'unavailable', address: options.address, reason: 'Enter a valid 0x-prefixed Ethereum address.', warnings: [] };
   }
   const address = getAddress(options.address);
-  const urls = resolveRpcUrls(options.rpcUrls);
+  const urls = rankUrls(resolveRpcUrls(options.rpcUrls));
   const blockscout = options.blockscoutBase || process.env.BLOCKSCOUT_BASE_URL || 'https://eth.blockscout.com';
   const warnings: string[] = [];
   try {
@@ -41,20 +57,34 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
     const { client, head } = await pickClient(urls);
     throwIfAborted(options.signal);
     progress('Metadata', 'Reading ERC-20 name, symbol and decimals', 14);
-    const onchain = await readErc20(client, address);
     const profile = await readBlockscoutProfile(blockscout, address, options.signal).catch(() => null);
+    let onchain: Awaited<ReturnType<typeof readErc20>>;
+    try {
+      onchain = await readErc20(client, address);
+    } catch (error) {
+      if (!profile?.name || !profile.symbol || profile.decimals === null) throw error;
+      onchain = { address, name: profile.name, symbol: profile.symbol, decimals: profile.decimals };
+      warnings.push('Direct ERC-20 reads failed. Name, symbol and decimals came from Blockscout, and no trade figures were invented.');
+    }
     if (!profile) warnings.push('Blockscout did not return a contract profile. Deployer and holder count may be blank. Swap decoding does not depend on it.');
     const token = tokenRecord(onchain, profile);
-    const headBlock = await client.getBlock({ blockNumber: head });
+    const headBlock = await readBlockHeader(client, urls, Number(head));
     const headNumber = Number(head);
     const deployBlock = profile?.deployBlock ? BigInt(profile.deployBlock) : head - 200_000n;
     if (!profile?.deployBlock) warnings.push('Contract creation block was not found. Pool discovery started 200,000 blocks back from the chain tip instead of the deploy block.');
 
     progress('Pools', 'Resolving Uniswap V2, V3 and V4 pools', 28);
-    const discovered = await discoverPools({ client, token: address, urls, fromBlock: deployBlock, toBlock: head, blockscoutBase: blockscout, signal: options.signal });
+    let discovered = await discoverPools({ client, token: address, urls, fromBlock: deployBlock, toBlock: head, blockscoutBase: blockscout, signal: options.signal });
+    if (!discovered.pools.length) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      throwIfAborted(options.signal);
+      const again = await discoverPools({ client, token: address, urls, fromBlock: deployBlock, toBlock: head, blockscoutBase: blockscout, signal: options.signal });
+      discovered = { pools: again.pools, warnings: [...discovered.warnings, ...again.warnings] };
+    }
     warnings.push(...discovered.warnings);
     if (!discovered.pools.length) {
-      return { ok: false, origin: 'unavailable', address, reason: 'No supported Uniswap V2, V3 or V4 pool was verified for this contract. Nothing was estimated.', warnings };
+      const rpcGap = discovered.warnings.some((item) => /lookup failed|refused|rpc/i.test(item));
+      return { ok: false, origin: 'unavailable', address, reason: rpcGap ? 'Pool discovery did not finish because RPC reads failed. No volume was estimated.' : 'No supported Uniswap V2, V3 or V4 pool was verified for this contract. Nothing was estimated.', warnings };
     }
 
     progress('T0', 'Searching for the first public swap after liquidity', 42);
@@ -62,8 +92,7 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
     const remember = async (blockNumber: number) => {
       const cached = blockCache.get(blockNumber);
       if (cached) return cached;
-      const block = await client.getBlock({ blockNumber: BigInt(blockNumber) });
-      const value = { timestamp: Number(block.timestamp), hash: block.hash || '' };
+      const value = await readBlockHeader(client, urls, blockNumber);
       blockCache.set(blockNumber, value);
       return value;
     };
@@ -110,20 +139,37 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
       startTs = Math.floor(Date.parse(options.window.startIso) / 1000);
       endTs = Math.floor(Date.parse(options.window.endIso) / 1000);
     }
+    if (endTs > headTs) warnings.push(`The requested end is after the chain tip at ${new Date(headTs * 1000).toISOString()}. Indexed blocks stop there. Minutes that have not happened are not filled in as zero trading.`);
     progress('Window', 'Mapping the selected interval onto blocks', 52);
-    const startBlock = options.window.mode === 'launch' && t0Log ? BigInt(t0Log.blockNumber) : await blockAtTimestamp(client, startTs, deployBlock, head);
-    const endBlock = endTs >= headTs ? head : await blockAtTimestamp(client, endTs, startBlock, head);
+    const startBlock = options.window.mode === 'launch' && t0Log ? BigInt(t0Log.blockNumber) : await blockAtTimestamp(client, urls, startTs, deployBlock, head);
+    const endBlock = endTs >= headTs ? head : await blockAtTimestamp(client, urls, endTs, startBlock, head);
     const sources = new Set<string>();
     const swapLogs: { log: ChainLog; pool: PoolInfo }[] = [];
     const audits: AuditEvent[] = [];
-    const targetBlocks = Number(endBlock - startBlock);
-    progress('Swaps', `Reading swap logs from ${startBlock} to ${endBlock}`, 64, { targetBlocks, blocksScanned: 0, pools: discovered.pools.length, swaps: 0 });
+    const targetBlocks = Number(endBlock - startBlock) * Math.max(1, discovered.pools.length);
+    let scannedBlocks = 0;
+    progress('Indexing', `Reading swap logs from ${startBlock} to ${endBlock}`, 64, { targetBlocks, blocksScanned: 0, blocksRemaining: targetBlocks, pools: discovered.pools.length, swaps: 0 });
     for (const pool of discovered.pools) {
       throwIfAborted(options.signal);
       const swapTopic = pool.protocol === 'v2' ? TOPIC.swapV2 : pool.protocol === 'v3' ? TOPIC.swapV3 : TOPIC.swapV4;
       const mintTopic = pool.protocol === 'v2' ? TOPIC.mintV2 : pool.protocol === 'v3' ? TOPIC.mintV3 : TOPIC.modifyV4;
       const burnTopic = pool.protocol === 'v2' ? TOPIC.burnV2 : pool.protocol === 'v3' ? TOPIC.burnV3 : TOPIC.modifyV4;
-      const swaps = await fetchLogs({ urls, address: pool.address as `0x${string}`, topic0: swapTopic, topic1: pool.poolId as `0x${string}` | undefined, fromBlock: startBlock, toBlock: endBlock, blockscoutBase: blockscout, signal: options.signal });
+      const poolSpan = Number(endBlock - startBlock);
+      const swaps = await fetchLogs({
+        urls,
+        address: pool.address as `0x${string}`,
+        topic0: swapTopic,
+        topic1: pool.poolId as `0x${string}` | undefined,
+        fromBlock: startBlock,
+        toBlock: endBlock,
+        blockscoutBase: blockscout,
+        signal: options.signal,
+        onChunk: (done, total) => {
+          const current = scannedBlocks + Math.min(done, total);
+          progress('Indexing', `Pool ${pool.protocol} ${pool.address.slice(0, 8)} · ${done}/${total} blocks`, 66, { targetBlocks, blocksScanned: current, blocksRemaining: Math.max(0, targetBlocks - current), pools: discovered.pools.length, swaps: swapLogs.length });
+        },
+      });
+      scannedBlocks += poolSpan;
       sources.add(swaps.source);
       swaps.logs.forEach((log) => swapLogs.push({ log, pool }));
       for (const topic0 of [mintTopic, burnTopic]) {
@@ -141,7 +187,7 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
           audits.push({ kind: decoded.kind, txHash: log.transactionHash, blockNumber: log.blockNumber, logIndex: log.logIndex, wallet: decoded.actor, reason: decoded.kind === 'mint' ? 'Liquidity mint is excluded from independent buy volume.' : 'Liquidity burn is excluded from independent sell volume.' });
         }
       }
-      progress('Swaps', `Indexed ${swapLogs.length} swap logs across ${discovered.pools.length} pools`, 70, { targetBlocks, blocksScanned: targetBlocks, pools: discovered.pools.length, swaps: swapLogs.length });
+      progress('Indexing', `Indexed ${swapLogs.length} swap logs across ${discovered.pools.length} pools`, 70, { targetBlocks, blocksScanned: scannedBlocks, blocksRemaining: Math.max(0, targetBlocks - scannedBlocks), pools: discovered.pools.length, swaps: swapLogs.length });
     }
 
     const raw: RawSwap[] = [];
@@ -157,7 +203,7 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
     const limited = raw.length > 8000 ? raw.slice(0, 8000) : raw;
     if (raw.length > 8000) warnings.push(`Decoded ${raw.length} swaps. The interactive view kept the earliest 8,000 and marked coverage partial. Run the worker for the full archive.`);
 
-    progress('Transactions', 'Reading signers for each swap transaction', 76);
+    progress('Reconstruction', 'Reading signers for each swap transaction', 76, { swaps: limited.length, routes: 0 });
     const uniqueBlocks = [...new Set(limited.map((swap) => swap.blockNumber))];
     await mapLimit(uniqueBlocks, 8, async (blockNumber) => remember(blockNumber));
     const txHashes = [...new Set(limited.map((swap) => swap.txHash))];
@@ -167,7 +213,12 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
     await mapLimit(txHashes, 12, async (hash) => {
       try {
         const tx = await client.getTransaction({ hash: hash as `0x${string}` });
-        txMeta.set(hash.toLowerCase(), { from: getAddress(tx.from), to: tx.to ? getAddress(tx.to) : null });
+        txMeta.set(hash.toLowerCase(), {
+          from: getAddress(tx.from),
+          to: tx.to ? getAddress(tx.to) : null,
+          gas: tx.gas?.toString() || null,
+          maxPriorityFeePerGas: tx.maxPriorityFeePerGas?.toString() || null,
+        });
       } catch {
         missingSigners += 1;
       }
@@ -183,7 +234,12 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
 
     const byTx = new Map<string, RawSwap[]>();
     for (const swap of limited) byTx.set(swap.txHash.toLowerCase(), [...(byTx.get(swap.txHash.toLowerCase()) || []), swap]);
-    const drafts = [...byTx.entries()].flatMap(([hash, swaps]) => reconcileTransaction(swaps, txMeta.get(hash), address));
+    const seenIds = new Set<string>();
+    const drafts = [...byTx.entries()].flatMap(([hash, swaps]) => reconcileTransaction(swaps, txMeta.get(hash), address)).filter((draft) => {
+      if (seenIds.has(draft.id)) return false;
+      seenIds.add(draft.id);
+      return true;
+    });
     let trades: Trade[] = drafts.map((draft) => {
       const block = blockCache.get(draft.blockNumber);
       const timestamp = block?.timestamp || 0;
@@ -197,7 +253,7 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
       return trade;
     }).filter((trade) => trade.timestamp === 0 || (trade.timestamp >= startTs && trade.timestamp <= endTs));
 
-    progress('Attribution', `Scoring wallets with ${HEURISTIC_VERSION}`, 88);
+    progress('Classification', `Scoring wallets with ${HEURISTIC_VERSION}`, 88, { routes: drafts.length, swaps: limited.length });
     const wallets = [...new Set(trades.map((trade) => trade.wallet.toLowerCase()))].slice(0, 250);
     const contracts = new Set<string>();
     await mapLimit(wallets, 10, async (wallet) => {
@@ -234,7 +290,7 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
     ];
     token.status = finalizedStatus(headNumber, Number(endBlock));
     const score = coverageScore({ warnings: warnings.length, truncated: raw.length > 8000, kept: limited.length, raw: raw.length, matched });
-    progress(score.provisional ? 'Provisional' : 'Ready', score.provisional ? 'Coverage is incomplete. The percentage is the measured remainder, not a timer.' : 'Analysis assembled from chain logs', score.pct, { coveragePct: score.pct, provisional: score.provisional, swaps: limited.length, pools: discovered.pools.length, targetBlocks, blocksScanned: targetBlocks, errors: score.reasons });
+    progress('Analytics', score.provisional ? 'Coverage is incomplete. The percentage is the measured remainder, not a timer.' : 'Analysis assembled from chain logs', score.pct, { coveragePct: score.pct, provisional: score.provisional, swaps: limited.length, pools: discovered.pools.length, targetBlocks, blocksScanned: scannedBlocks, blocksRemaining: Math.max(0, targetBlocks - scannedBlocks), routes: trades.length, wallets: new Set(trades.map((trade) => trade.wallet.toLowerCase())).size, errors: score.reasons });
     return {
       ok: true,
       origin: 'chain',
@@ -278,7 +334,7 @@ export async function analyzeToken(options: Options): Promise<AnalysisResult> {
 
 async function pickClient(urls: string[]) {
   let last: unknown;
-  for (const url of urls) {
+  for (const url of rankUrls(urls)) {
     try {
       const client = createChainClient(url);
       const head = await client.getBlockNumber();
@@ -290,13 +346,35 @@ async function pickClient(urls: string[]) {
   throw last instanceof Error ? last : new Error('No Ethereum RPC responded. Add a mainnet URL in Settings.');
 }
 
-async function blockAtTimestamp(client: PublicClient, timestamp: number, low: bigint, high: bigint) {
+async function readBlockHeader(client: PublicClient, urls: string[], blockNumber: number) {
+  try {
+    const block = await client.getBlock({ blockNumber: BigInt(blockNumber) });
+    return { timestamp: Number(block.timestamp), hash: block.hash || '' };
+  } catch {
+    for (const url of urls.slice(0, 3)) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBlockByNumber', params: [`0x${blockNumber.toString(16)}`, false] }),
+        });
+        const body = await response.json() as { result?: { timestamp?: string; hash?: string } };
+        if (body.result?.timestamp) return { timestamp: Number(BigInt(body.result.timestamp)), hash: body.result.hash || '' };
+      } catch {
+        /* try the next endpoint */
+      }
+    }
+    throw new Error(`Block ${blockNumber} could not be read. No timestamp was invented.`);
+  }
+}
+
+async function blockAtTimestamp(client: PublicClient, urls: string[], timestamp: number, low: bigint, high: bigint) {
   let lo = low < 0n ? 0n : low;
   let hi = high;
   while (lo < hi) {
     const mid = (lo + hi) / 2n;
-    const block = await client.getBlock({ blockNumber: mid });
-    if (Number(block.timestamp) < timestamp) lo = mid + 1n;
+    const block = await readBlockHeader(client, urls, Number(mid));
+    if (block.timestamp < timestamp) lo = mid + 1n;
     else hi = mid;
   }
   return lo;

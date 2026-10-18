@@ -5,4 +5,7 @@ export const KPI_HINTS = {
   buyers: 'Count of distinct signer addresses with at least one independent buy. This is not a count of humans.',
   net: 'Valued independent buys minus valued independent sells. Gross volume can exceed this because the same ETH can turn over.',
   retention: 'Share of independent buyers who have no sell in the same window. A missing sell is not a holding commitment.',
+  confirmed: 'Valued independent buy ETH with HIGH evidence only. HIGH still is not an identity.',
+  heuristic: 'Valued independent buy ETH with MEDIUM evidence. Included in the automated total together with HIGH.',
+  unclassified: 'Valued independent buy ETH with LOW or UNKNOWN evidence. Excluded from the automated total.',
 } as const;

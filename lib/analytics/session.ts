@@ -1,4 +1,6 @@
 import { getAddress, isAddress } from 'viem';
+import { computeDepth } from './depth';
+import { computeFlow } from './flow';
 import { computeKpis } from '../chain/kpis';
 import { tradesInView } from '../intervals';
 import type { AnalysisSuccess, LibraryCatalog } from '../types';
@@ -46,6 +48,10 @@ export type AlignedLaunch = {
   initialLiquidityWei: string | null;
   buyerRetention: number | null;
   concentrationTop5: number | null;
+  netWei: string;
+  firstMinuteBuyWei: string;
+  medianBuyWei: string | null;
+  earlyExit5: number;
   note: string;
 };
 
@@ -58,6 +64,8 @@ export function alignLaunch(snapshot: AnalysisSuccess, minutes: number): Aligned
     lpEvents: snapshot.kpis.lpEvents,
     t0Block: snapshot.timeline.t0Block,
   });
+  const depth = computeDepth(trades, snapshot.timeline.t0Timestamp);
+  const flow = computeFlow(trades, kpis.botBuyWei, kpis.botSellWei);
   return {
     address: snapshot.token.address,
     symbol: snapshot.token.symbol,
@@ -71,6 +79,10 @@ export function alignLaunch(snapshot: AnalysisSuccess, minutes: number): Aligned
     initialLiquidityWei: kpis.initialLiquidityWei,
     buyerRetention: kpis.buyerRetention,
     concentrationTop5: kpis.concentrationTop5,
+    netWei: kpis.netWei,
+    firstMinuteBuyWei: depth.firstMinuteBuyWei,
+    medianBuyWei: depth.medianBuyWei,
+    earlyExit5: flow.earlyExitBuyers.within5m,
     note: covered
       ? `First ${minutes} minutes after this token's T0, using the stored ${stored} minute index.`
       : `Stored index is ${stored} minutes, shorter than the requested ${minutes}. Figures use the stored window and are not ranked as a full interval.`,

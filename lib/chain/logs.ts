@@ -2,6 +2,14 @@ import type { AbiEvent, Log } from 'viem';
 import { decodeEventLog } from 'viem';
 import { parseHexOrDec } from '../format';
 import { backoffMs, createChainClient, rpcFailureKind, throwIfAborted } from './client';
+import { noteProvider, rankUrls } from './providers';
+
+export const logStats = { retries: 0, gaps: 0 };
+
+export function resetLogStats() {
+  logStats.retries = 0;
+  logStats.gaps = 0;
+}
 
 export type ChainLog = {
   address: string;
@@ -43,18 +51,57 @@ function normalizeRpc(log: Log, source: ChainLog['source']): ChainLog {
   };
 }
 
+async function rawGetLogs(url: string, params: Record<string, unknown>): Promise<ChainLog[]> {
+  const filter = params as { address: string; fromBlock: bigint; toBlock: bigint; topics?: (`0x${string}` | null)[] };
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'eth_getLogs',
+      params: [{ address: filter.address, fromBlock: `0x${filter.fromBlock.toString(16)}`, toBlock: `0x${filter.toBlock.toString(16)}`, topics: filter.topics || [] }],
+    }),
+  });
+  const body = await response.json() as { error?: { message?: string }; result?: { address: string; topics: `0x${string}`[]; data: string; blockNumber: string; blockHash?: string; transactionHash: string; transactionIndex: string; logIndex: string }[] };
+  if (!response.ok || body.error) throw new Error(body.error?.message || `eth_getLogs HTTP ${response.status}`);
+  if (!Array.isArray(body.result)) throw new Error('eth_getLogs returned no log array');
+  return body.result.map((log) => ({
+    address: log.address,
+    topics: log.topics || [],
+    data: (log.data || '0x') as `0x${string}`,
+    blockNumber: Number(BigInt(log.blockNumber)),
+    blockHash: log.blockHash || '',
+    transactionHash: log.transactionHash as `0x${string}`,
+    transactionIndex: Number(BigInt(log.transactionIndex || '0x0')),
+    logIndex: Number(BigInt(log.logIndex || '0x0')),
+    source: 'rpc' as const,
+  }));
+}
+
 async function rpcRange(urls: string[], params: Record<string, unknown>): Promise<ChainLog[] | 'split'> {
   let split = false;
   let last: unknown;
-  for (const url of urls) {
+  for (const url of rankUrls(urls)) {
     for (let attempt = 0; attempt < 2; attempt++) {
       throwIfAborted();
+      const started = Date.now();
       try {
         const client = createChainClient(url);
         const logs = await client.getLogs(params as never);
+        noteProvider(url, true, Date.now() - started);
         return logs.map((log) => normalizeRpc(log, 'rpc'));
       } catch (error) {
+        try {
+          const logs = await rawGetLogs(url, params);
+          noteProvider(url, true, Date.now() - started);
+          return logs;
+        } catch (rawError) {
+          error = rawError;
+        }
         last = error;
+        noteProvider(url, false, Date.now() - started);
+        logStats.retries += 1;
         const kind = rpcFailureKind(error);
         if (kind === 'range' || kind === 'toomany') {
           split = true;
@@ -140,6 +187,7 @@ async function rangeLogs(args: FetchArgs, fromBlock: bigint, toBlock: bigint): P
   if (toBlock - fromBlock <= 10n) {
     if (args.blockscoutBase) {
       const logs = await blockscoutRange(args.blockscoutBase, args, fromBlock, toBlock);
+      logStats.gaps += 1;
       return { logs, source: 'blockscout-log-index' };
     }
     throw new Error(`Could not read logs for blocks ${fromBlock}-${toBlock}. Add an archive Ethereum RPC in Settings.`);
@@ -176,7 +224,10 @@ export async function findEarliestLog(args: FetchArgs): Promise<{ log: ChainLog 
     const end = cursor + chunk - 1n > args.toBlock ? args.toBlock : cursor + chunk - 1n;
     const found = await rangeLogs({ ...args, fromBlock: cursor, toBlock: end }, cursor, end);
     source = found.source;
-    if (found.logs.length) return { log: found.logs[0], source };
+    if (found.logs.length) {
+      found.logs.sort((a, b) => a.blockNumber - b.blockNumber || a.transactionIndex - b.transactionIndex || a.logIndex - b.logIndex);
+      return { log: found.logs[0], source };
+    }
   }
   return { log: null, source };
 }

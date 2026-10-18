@@ -3,7 +3,7 @@ import type { RawSwap } from './decode';
 import { sameAddr, weiToNumber } from '../format';
 import type { Confidence, Trade, Valuation } from '../types';
 
-export type TxMeta = { from: string; to: string | null };
+export type TxMeta = { from: string; to: string | null; gas?: string | null; maxPriorityFeePerGas?: string | null };
 
 type Leg = {
   swap: RawSwap;
@@ -54,6 +54,8 @@ export type DraftTrade = {
   method: string;
   hops: number;
   assistedExecution: boolean;
+  gas?: string | null;
+  maxPriorityFeePerGas?: string | null;
 };
 
 export function reconcileTransaction(swaps: RawSwap[], tx: TxMeta | undefined, token: string): DraftTrade[] {
@@ -114,6 +116,8 @@ export function reconcileTransaction(swaps: RawSwap[], tx: TxMeta | undefined, t
       method: group.length > 1 || swaps.length > legs.length ? `${method} · ${swaps.length} hops` : method,
       hops: swaps.length,
       assistedExecution,
+      gas: tx?.gas || null,
+      maxPriorityFeePerGas: tx?.maxPriorityFeePerGas || null,
     });
   }
   return drafts;
@@ -155,5 +159,7 @@ export function blankTrade(draft: DraftTrade, minute: number, timestamp: number,
     blockNumber: draft.blockNumber,
     txIndex: draft.txIndex,
     origin: 'chain',
+    gas: draft.gas || null,
+    maxPriorityFeePerGas: draft.maxPriorityFeePerGas || null,
   };
 }
