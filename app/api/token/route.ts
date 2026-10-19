@@ -1,3 +1,29 @@
-import {NextRequest,NextResponse} from 'next/server';import {isAddress,getAddress} from 'viem';import {sampleTokens} from '@/lib/data';
-export const runtime='nodejs';export const dynamic='force-dynamic';
-export async function GET(req:NextRequest){const ca=req.nextUrl.searchParams.get('ca')?.trim()||'';if(!isAddress(ca))return NextResponse.json({error:'Enter a valid 0x-prefixed Ethereum address.'},{status:400});const normalized=getAddress(ca);const known=sampleTokens.find(x=>x.address.toLowerCase()===ca.toLowerCase());const base=(process.env.BLOCKSCOUT_BASE_URL||'https://eth.blockscout.com').replace(/\/$/,'');try{const r=await fetch(`${base}/api/v2/tokens/${normalized}`,{headers:{accept:'application/json'},signal:AbortSignal.timeout(8500),cache:'no-store'});if(!r.ok)throw new Error(`Blockscout HTTP ${r.status}`);const b=await r.json();const t={address:normalized,name:String(b.name||known?.name||'Unknown token'),symbol:String(b.symbol||known?.symbol||'UNKNOWN'),launch:known?.launch||'',status:'Live contract metadata',initialEth:known?.initialEth||0,holders:Number(b.holders_count||0),source:'blockscout' as const,verified:Boolean(b.is_verified||b.is_verified_via_admin_panel)};return NextResponse.json({token:t,source:'blockscout',disclaimer:'Live contract metadata only. Swap KPIs come from the indexed log pipeline, never from this response.'})}catch(e){if(known && known.source==='demo' && known.symbol!=='SISH')return NextResponse.json({error:'Blockscout is unavailable and this address is only a synthetic example. No metadata was invented.'},{status:503});if(known)return NextResponse.json({token:{...known,source:'blockscout',status:'Cached reference metadata'},source:'local-reference',disclaimer:'Blockscout did not respond. This is stored reference metadata, not a trade reconstruction.'});return NextResponse.json({error:'Live token metadata lookup is currently unavailable. Check Blockscout connectivity and try again. No token data was invented.'},{status:503})}}
+import { NextRequest, NextResponse } from 'next/server';
+import { getAddress, isAddress } from 'viem';
+
+export async function GET(req: NextRequest) {
+  const ca = req.nextUrl.searchParams.get('ca')?.trim() || '';
+  if (!isAddress(ca)) return NextResponse.json({ error: 'Enter a valid 0x-prefixed Ethereum address.' }, { status: 400 });
+  const normalized = getAddress(ca);
+  const base = (process.env.BLOCKSCOUT_BASE_URL || 'https://eth.blockscout.com').replace(/\/$/, '');
+  try {
+    const response = await fetch(`${base}/api/v2/tokens/${normalized}`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(8500), cache: 'no-store' });
+    if (!response.ok) throw new Error(`Blockscout HTTP ${response.status}`);
+    const body = await response.json() as { name?: string; symbol?: string; holders_count?: number; is_verified?: boolean; is_verified_via_admin_panel?: boolean };
+    if (!body.name || !body.symbol) throw new Error('Blockscout did not return a name and symbol. No other token was substituted.');
+    return NextResponse.json({
+      address: normalized,
+      name: String(body.name),
+      symbol: String(body.symbol),
+      launch: '',
+      status: 'Live contract metadata',
+      initialEth: null,
+      holders: Number(body.holders_count || 0),
+      source: 'blockscout' as const,
+      verified: Boolean(body.is_verified || body.is_verified_via_admin_panel),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Metadata lookup failed.';
+    return NextResponse.json({ error: `${message} No other token was substituted.` }, { status: 502 });
+  }
+}

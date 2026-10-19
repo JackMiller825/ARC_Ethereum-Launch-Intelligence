@@ -3,10 +3,9 @@ import { writeFileSync } from 'node:fs';
 import type { NextConfig } from 'next';
 
 const pages = process.env.GITHUB_PAGES === 'true';
-const repo = 'ARC_Ethereum-Launch-Intelligence';
 const commit = (process.env.GITHUB_SHA || process.env.NEXT_PUBLIC_COMMIT_SHA || readSha()).trim();
 const builtAt = new Date().toISOString();
-const basePath = pages ? `/${repo}` : '';
+const basePath = '';
 
 function readSha() {
   try {
@@ -27,7 +26,7 @@ const config: NextConfig = {
     NEXT_PUBLIC_BUILD_TIME: builtAt,
     NEXT_PUBLIC_BASE_PATH: basePath,
   },
-  ...(pages ? { output: 'export' as const, basePath, assetPrefix: `/${repo}/` } : {
+  ...(pages ? { output: 'export' as const } : {
     async headers() {
       return [{ source: '/version.json', headers: [{ key: 'Cache-Control', value: 'no-store' }] }];
     },

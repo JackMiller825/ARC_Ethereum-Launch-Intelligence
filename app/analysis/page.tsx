@@ -1,14 +1,16 @@
 "use client";
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Activity, ArrowRight, Bot, Copy, ExternalLink, ShieldCheck, TrendingUp, Wallet } from '@/components/icons';
+import { Activity, Bot, Copy, ExternalLink, ShieldCheck, TrendingUp, Wallet } from '@/components/icons';
 import { BrandEmbed } from '@/components/brand-report';
 import { IndexingProgress } from '@/components/indexing-progress';
 import { LiveMonitor } from '@/components/monitor';
+import { ResearchAssistant } from '@/components/assistant';
 import { DemoBadge, ExportButton, ExportJson, MetricTile, PageHeading, Pill, TradeTable, TrendChart, WindowControls } from '@/components/ui';
 import { ContractSearchHero } from '@/components/visual';
 import { useWorkspace } from '@/components/workspace';
-import { durations, REFERENCE_CA, selectTrades, aggregate } from '@/lib/data';
+import { durations, selectTrades, aggregate } from '@/lib/data';
+import { matchingSnapshot } from '@/lib/token/identity';
 import { formatEth, shortAddr, utcStamp } from '@/lib/format';
 import { computeDepth } from '@/lib/analytics/depth';
 import { computeFlow } from '@/lib/analytics/flow';
@@ -21,7 +23,8 @@ import type { Interval, WindowMode, WindowSpec } from '@/lib/types';
 function Analyzer() {
   const qs = useSearchParams();
   const { ready, active, setActive, snapshots, analyze, progress, error, cancel, settings } = useWorkspace();
-  const [ca, setCa] = useState(qs.get('ca') || '');
+  const [ca, setCa] = useState('');
+  useEffect(() => { setCa(qs.get('ca') || ''); }, [qs]);
   const [interval, setInterval] = useState<Interval>('1h');
   const [custom, setCustom] = useState(90);
   const [mode, setMode] = useState<WindowMode>('launch');
@@ -30,7 +33,7 @@ function Analyzer() {
   const [localError, setLocalError] = useState('');
   const [tab, setTab] = useState<'overview' | 'transactions' | 'liquidity' | 'wallets' | 'bots' | 'contract' | 'quality' | 'brand'>('overview');
   const minutes = interval === 'custom' ? custom : durations[interval];
-  const viewing = active && ca && active.token.address.toLowerCase() === ca.toLowerCase() ? active : null;
+  const viewing = matchingSnapshot(active, ca);
   const demoTrades = settings.demoMode && !viewing ? selectTrades(minutes) : [];
   const trades = useMemo(() => viewing ? tradesInView(viewing.trades, viewing.window.mode === 'absolute' ? viewing.window.minutes : minutes, viewing.window.minutes) : demoTrades, [viewing, minutes, demoTrades]);
   const kpis = useMemo(() => viewing ? computeKpis(trades, { initialLiquidityWei: viewing.kpis.initialLiquidityWei ? BigInt(viewing.kpis.initialLiquidityWei) : null, lpEvents: viewing.kpis.lpEvents, t0Block: viewing.timeline.t0Block }) : null, [viewing, trades]);
@@ -69,10 +72,11 @@ function Analyzer() {
     <ContractSearchHero value={ca} onChange={setCa} onSubmit={() => { void run(); }} busy={Boolean(progress)} recent={snapshots.slice(0, 4).map((item) => item.token.address)} onNode={(id) => setTab(id === 'flow' ? 'overview' : id === 'liquidity' ? 'liquidity' : id === 'bots' ? 'bots' : id === 'wallets' ? 'wallets' : id === 'quality' ? 'quality' : 'overview')} />
     {(error || localError) && <div className="error-note">{localError || error}</div>}
     {viewing && <div className="token-identity"><div className="identity-icon">{viewing.token.symbol.slice(0, 2)}</div><div className="identity-main"><div className="eyebrow">IDENTIFIED TOKEN</div><h2>{viewing.token.name} <span>/{viewing.token.symbol}</span></h2><div className="identity-address"><code>{viewing.token.address}</code><button type="button" onClick={() => navigator.clipboard.writeText(viewing.token.address)} aria-label="Copy address"><Copy size={15} /></button></div></div><div className="identity-right"><Pill kind="green">{viewing.token.source === 'chain' ? 'On-chain metadata' : 'Blockscout + chain'}</Pill>{viewing.token.verified && <Pill kind="green">Verified</Pill>}<a href={`https://etherscan.io/token/${viewing.token.address}`} target="_blank" rel="noreferrer" className="btn secondary"><ExternalLink size={15} /> Etherscan</a></div></div>}
-    {!viewing && !progress && <div className="quick-start"><span>QUICK RESEARCH</span><button type="button" onClick={() => { setCa(REFERENCE_CA); run(REFERENCE_CA); }}>Index $SISH reference <ArrowRight size={15} /></button></div>}
+    {!viewing && !progress && <div className="data-boundary"><ShieldCheck size={20} /><div><strong>Enter an Ethereum contract address to begin.</strong><p>No contract is prefilled. A failed lookup does not substitute another token. Choose an interval, then run Analyze.</p></div></div>}
     <div className="data-boundary"><ShieldCheck size={20} /><div><strong>{viewing ? 'Chain reconstruction' : progress ? 'Indexing chain logs' : 'Waiting for an index run'}</strong><p>{viewing ? `T0 ${utcStamp(viewing.timeline.t0Timestamp)} · deploy ${utcStamp(viewing.timeline.deployTimestamp)} · first liquidity ${utcStamp(viewing.timeline.firstLiquidityTimestamp)}. ${turnoverNote(kpis?.turnover ?? null)}` : progress ? progress.detail : 'No synthetic ledger is substituted for a contract. Run Analyze to read Uniswap V2, V3 and V4 logs.'}</p></div></div>
     {settings.demoMode && !viewing && <DemoBadge />}
     <LiveMonitor />
+    {viewing && <ResearchAssistant context={{ snapshot: viewing, peers: snapshots.filter((item) => item.token.address.toLowerCase() !== viewing.token.address.toLowerCase()).slice(0, 5) }} />}
     <WindowControls interval={interval} setInterval={setInterval} custom={custom} setCustom={setCustom} mode={mode} setMode={setMode} />
     {mode === 'absolute' && <div className="parameter-grid" style={{ marginBottom: 16 }}><label>Start (converted to UTC)<div className="input-with-unit"><input aria-label="Window start" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} /></div></label><label>End (converted to UTC)<div className="input-with-unit"><input aria-label="Window end" type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} /></div></label></div>}
     <div className="tabs" role="tablist" aria-label="Analysis sections">{(['overview', 'transactions', 'liquidity', 'wallets', 'bots', 'contract', 'quality', 'brand'] as const).map((item) => <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? 'selected' : ''} onClick={() => setTab(item)}>{item === 'bots' ? 'Bot Activity' : item === 'quality' ? 'Data Quality' : item === 'brand' ? 'Brand' : item[0].toUpperCase() + item.slice(1)}</button>)}</div>

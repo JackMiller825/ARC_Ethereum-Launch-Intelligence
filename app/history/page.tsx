@@ -1,6 +1,7 @@
 "use client";
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowUpRight, History, Plus } from '@/components/icons';
 import { DemoBadge, ExportJson, PageHeading, Pill } from '@/components/ui';
 import { useWorkspace } from '@/components/workspace';
@@ -8,19 +9,28 @@ import { parseAddressList } from '@/lib/analytics/batch';
 import { alignLaunch } from '@/lib/analytics/session';
 import { pearson } from '@/lib/analytics/stats';
 import { formatEth, shortAddr, utcStamp } from '@/lib/format';
+import { listNotes, saveCatalog, saveNote, savePlaybook, saveSnapshot, type ResearchNote } from '@/lib/store/idb';
 import { sampleTokens } from '@/lib/data';
 
 const comparePresets = [1, 5, 15, 30, 60, 360, 1440];
 
-export default function HistoryPage() {
-  const { ready, snapshots, settings, catalog, toggleFavorite, analyze } = useWorkspace();
+export default function HistoryRoute() {
+  return <Suspense fallback={<div className="panel">Loading history…</div>}><HistoryPage /></Suspense>;
+}
+
+function HistoryPage() {
+  const params = useSearchParams();
+  const { ready, snapshots, settings, catalog, toggleFavorite, analyze, playbook } = useWorkspace();
   const [minutes, setMinutes] = useState(15);
   const [picked, setPicked] = useState<string[]>([]);
   const [batchText, setBatchText] = useState('');
   const [batchNote, setBatchNote] = useState('Paste up to 10 contract addresses or a CSV. Each token keeps its own result if another one fails.');
   const [batchRows, setBatchRows] = useState<{ address: string; status: string }[]>([]);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(params.get('q') || '');
   const [sort, setSort] = useState<'symbol' | 'buy' | 'saved'>('saved');
+  const [notes, setNotes] = useState<ResearchNote[]>([]);
+  const [noteBody, setNoteBody] = useState('');
+  useEffect(() => { void listNotes().then(setNotes).catch(() => undefined); }, []);
   const chosen = picked.length ? snapshots.filter((item) => picked.includes(item.token.address.toLowerCase())) : snapshots;
   const rows = useMemo(() => chosen.map((item) => alignLaunch(item, minutes)), [chosen, minutes]);
   const relation = useMemo(() => pearson(rows.map((item) => Number(item.grossBuyWei) / 1e18), rows.map((item) => item.uniqueBuyers)), [rows]);
@@ -37,10 +47,11 @@ export default function HistoryPage() {
   return <>
     <PageHeading eyebrow="WORKSPACE / TOKEN HISTORY" title="One place for every launch." description="Snapshots stay in this browser’s IndexedDB, one per contract, with the window and evidence model that produced them."><Link className="btn primary" href="/analysis"><Plus size={16} /> Analyze new CA</Link></PageHeading>
     <div className="lookup-box" data-tour="history-search"><div className="lookup-form"><History size={18} /><input aria-label="Search saved tokens" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search symbol, name, or contract" /></div></div>
+    <section className="panel"><div className="panel-eyebrow">WORKSPACE</div><h3>Notes and backup</h3><p className="panel-desc">Notes stay in this browser. A backup download does not delete them. Restore adds records and does not wipe ones already stored.</p><textarea aria-label="Research note" rows={3} value={noteBody} onChange={(event) => setNoteBody(event.target.value)} placeholder="Note for the tokens you have indexed" /><button className="btn ghost" type="button" onClick={() => { const note = { id: `note:${Date.now()}`, tokenId: picked[0] || 'library', body: noteBody, updatedAt: Date.now() }; void saveNote(note).then(() => setNotes([note, ...notes])); setNoteBody(''); }}>Save note</button>{notes.slice(0, 8).map((note) => <p key={note.id} className="panel-desc">{note.body}</p>)}<div className="feature-actions"><button className="btn secondary" type="button" onClick={() => { const blob = new Blob([JSON.stringify({ snapshots, catalog, playbook, notes })], { type: 'application/json' }); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'arc-workspace.json'; anchor.click(); URL.revokeObjectURL(url); }}>Download backup</button><label className="btn ghost">Restore backup<input aria-label="Restore backup" type="file" accept="application/json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; void file.text().then(async (text) => { const body = JSON.parse(text) as { snapshots?: typeof snapshots; catalog?: typeof catalog; playbook?: typeof playbook; notes?: ResearchNote[] }; for (const item of body.snapshots || []) await saveSnapshot(item); if (body.catalog) await saveCatalog(body.catalog); if (body.playbook) await savePlaybook(body.playbook); for (const note of body.notes || []) await saveNote(note); window.location.reload(); }); }} /></label></div></section>
     {settings.demoMode && <><DemoBadge /><div className="history-grid">{sampleTokens.map((token, index) => <div className="history-card" key={token.address}><div className="history-head"><span className={`history-token logo-${index}`}>{token.symbol.slice(0, 2)}</span><Pill kind="amber">Synthetic card</Pill></div><h3>{token.name}</h3><div className="history-ticker">${token.symbol}</div><div className="history-meta"><span>Contract</span><code>{shortAddr(token.address)}</code></div><div className="history-foot">Not an indexed result</div></div>)}</div></>}
     <section className="panel" style={{ marginBottom: 18 }}><div className="panel-eyebrow">BATCH</div><h3>Several contracts, one job</h3><textarea aria-label="Batch addresses" value={batchText} onChange={(event) => setBatchText(event.target.value)} rows={4} placeholder="One address per line, or a CSV" /><button className="btn primary" type="button" onClick={() => void runBatch()} style={{ marginTop: 12 }}>Run batch</button><p className="panel-desc">{batchNote}</p>{batchRows.map((row) => <div className="coverage-row" key={row.address}><code>{row.address}</code><span>{row.status}</span></div>)}</section>
     {!ready && <div className="panel">Loading the local library…</div>}
-    {ready && snapshots.length === 0 && <div className="data-boundary"><History size={20} /><div><strong>History is empty</strong><p>$SISH can be indexed from the analyzer as a real reference contract. Example Alpha and Beta are not stored as if they traded.</p></div></div>}
+    {ready && snapshots.length === 0 && <div className="data-boundary"><History size={20} /><div><strong>Enter an Ethereum contract address to begin.</strong><p>Nothing is saved until you analyze a token in this browser. Favorites and comparisons use only those records.</p></div></div>}
     {catalog.recents.length > 0 && <p className="panel-desc">Recent contracts: {catalog.recents.map((item) => shortAddr(item)).join(' · ')}</p>}
     {snapshots.length > 0 && <section className="panel" style={{ marginBottom: 18 }}><div className="table-scroll"><table className="data-table"><caption className="sr-only">Saved token library</caption><thead><tr><th><button className="sort-btn" type="button" onClick={() => setSort('symbol')}>TOKEN</button></th><th>CONTRACT</th><th><button className="sort-btn" type="button" onClick={() => setSort('buy')}>GROSS BUY</button></th><th>NET</th><th>COVERAGE</th><th>FAVORITE</th><th></th></tr></thead><tbody>{[...snapshots].filter((item) => `${item.token.symbol} ${item.token.name} ${item.token.address}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sort === 'symbol' ? a.token.symbol.localeCompare(b.token.symbol) : sort === 'buy' ? (BigInt(b.kpis.grossBuyWei) > BigInt(a.kpis.grossBuyWei) ? 1 : -1) : b.savedAt - a.savedAt).map((item) => <tr key={item.token.address}><td>{item.token.symbol}</td><td className="mono">{shortAddr(item.token.address)}</td><td>{formatEth(item.kpis.grossBuyWei)}</td><td>{formatEth(item.kpis.netWei)}</td><td>{item.coverage.pct ?? '—'}%</td><td>{catalog.favorites.includes(item.token.address.toLowerCase()) ? 'Yes' : 'No'}</td><td><Link href={`/analysis?ca=${item.token.address}`}>Open</Link></td></tr>)}</tbody></table></div></section>}
     <div className="history-grid">{snapshots.filter((item) => `${item.token.symbol} ${item.token.name} ${item.token.address}`.toLowerCase().includes(query.toLowerCase())).map((item, index) => <div className="history-card" key={item.token.address}><div className="history-head"><span className={`history-token logo-${index % 3}`}>{item.token.symbol.slice(0, 2)}</span><Pill kind="green">{item.window.mode}</Pill></div><h3>{item.token.name}</h3><div className="history-ticker">${item.token.symbol}</div><div className="history-meta"><span>Contract</span><code>{shortAddr(item.token.address)}</code></div><div className="history-meta"><span>Gross buy</span><strong>{formatEth(item.kpis.grossBuyWei)} ETH</strong></div><div className="history-meta"><span>Window</span><strong>{item.window.minutes} min</strong></div><div className="history-meta"><span>T0</span><code>{utcStamp(item.timeline.t0Timestamp)}</code></div><div className="feature-actions"><button type="button" className="btn ghost" onClick={() => toggleFavorite(item.token.address)}>{catalog.favorites.includes(item.token.address.toLowerCase()) ? 'Favorited' : 'Favorite'}</button><button type="button" className="btn ghost" onClick={() => setPicked((current) => current.includes(item.token.address.toLowerCase()) ? current.filter((id) => id !== item.token.address.toLowerCase()) : [...current, item.token.address.toLowerCase()])}>{picked.includes(item.token.address.toLowerCase()) ? 'In comparison' : 'Compare'}</button><Link className="btn ghost" href={`/brand-intelligence?mode=existing&ca=${item.token.address}&name=${encodeURIComponent(item.token.name)}&ticker=${encodeURIComponent(item.token.symbol)}`}>Name &amp; ticker</Link></div><Link href={`/analysis?ca=${item.token.address}`} className="history-foot">Open analysis <ArrowUpRight size={17} /></Link></div>)}</div>

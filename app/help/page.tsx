@@ -5,9 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { BookOpen, Search, X } from '@/components/icons';
 import { PageHeading, Pill } from '@/components/ui';
 import { ARTICLES, CATEGORIES, articleById, type Article } from '@/lib/help/articles';
+import { GLOSSARY } from '@/lib/help/glossary';
+import { FEATURES } from '@/lib/features/registry';
+import { documentationCoveragePct, documentationStatus } from '@/lib/features/coverage';
 import { highlightParts, searchArticles } from '@/lib/help/search';
 import { resetTour, TOURS } from '@/lib/help/tours';
-import { REFERENCE_CA } from '@/lib/data';
 
 function Parts({ text, query }: { text: string; query: string }) {
   return <>{highlightParts(text, query).map((part, index) => part.match ? <mark key={index}>{part.text}</mark> : <span key={index}>{part.text}</span>)}</>;
@@ -21,6 +23,7 @@ function HelpCenter() {
   const [activeId, setActiveId] = useState(initial);
   const [cursor, setCursor] = useState(0);
   const hits = useMemo(() => searchArticles(ARTICLES, query), [query]);
+  const coverage = useMemo(() => documentationStatus(FEATURES, ARTICLES, GLOSSARY, TOURS), []);
   const active = articleById(activeId) || (query ? hits[cursor]?.article : undefined);
   function open(article: Article) {
     setActiveId(article.id);
@@ -52,7 +55,9 @@ function HelpCenter() {
         if (!article) return null;
         return <button key={category} type="button" className="history-card help-card" onClick={() => open(article)}><BookOpen size={18} /><h3>{category}</h3><p>{article.description}</p><Pill kind={article.availability === 'available' ? 'green' : article.availability === 'limited' ? 'amber' : 'muted'}>{article.availability}</Pill></button>;
       })}</div>
-      <section className="panel"><div className="panel-eyebrow">GUIDES</div><h3>Restart a walkthrough</h3><p className="panel-desc">Guides open on the real page. They do not start again on their own. Finish stores completion in this browser.</p><div className="feature-actions">{TOURS.map((tour) => <Link key={tour.id} className="btn secondary" href={`${tour.steps[0].href}?tour=${tour.id}&step=0`} onClick={() => resetTour(tour.id)}>{tour.title}</Link>)}</div><p className="panel-desc">Example contract for the first analysis: <code>{REFERENCE_CA}</code>. Live totals still require an RPC that can serve the logs.</p></section>
+      <section className="panel"><div className="panel-eyebrow">COVERAGE</div><h3>Documentation coverage {documentationCoveragePct(coverage)}%</h3><p className="panel-desc">Complete features divided by registered features. A feature counts only when its article exists, availability matches, glossary links resolve, and the article date is not older than the review date. Missing tours are listed and do not change the percentage.</p>{coverage.filter((row) => !row.complete || row.missingTour).map((row) => <div className="coverage-row" key={row.id}><span>{row.id}</span><span>{row.complete ? 'Article complete' : 'Article incomplete'}{row.missingTour ? ' · no tour' : ''}</span></div>)}</section>
+      <section className="panel"><div className="panel-eyebrow">FEATURES</div><h3>Registered features</h3><p className="panel-desc">This list is the feature registry. Each row opens the article that describes the current behavior.</p><div className="history-grid help-cards">{FEATURES.map((feature) => <button key={feature.id} type="button" className="history-card help-card" onClick={() => { const article = articleById(feature.helpArticleId); if (article) open(article); }}><h3>{feature.name}</h3><p>{feature.description}</p><Pill kind={feature.status === 'available' ? 'green' : feature.status === 'limited' ? 'amber' : 'muted'}>{feature.status}</Pill></button>)}</div></section>
+      <section className="panel"><div className="panel-eyebrow">GUIDES</div><h3>Restart a walkthrough</h3><p className="panel-desc">Guides open on the real page. They do not start again on their own. Finish stores completion in this browser.</p><div className="feature-actions">{TOURS.map((tour) => <Link key={tour.id} className="btn secondary" href={`${tour.steps[0].href}?tour=${tour.id}&step=0`} onClick={() => resetTour(tour.id)}>{tour.title}</Link>)}</div><p className="panel-desc">Guides do not fill a contract, name, or ticker. You supply the token.</p></section>
     </>}
     {active && <div className="help-layout">
       <nav className="help-nav" aria-label="Documentation">

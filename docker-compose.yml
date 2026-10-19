@@ -21,10 +21,11 @@ services:
       - db
   worker:
     build: .
-    command: ["npm", "run", "worker", "--", "0xe6f94f305ce2a00219fd4d476aa79f37304ffe8b"]
+    command: ["npm", "run", "worker"]
     environment:
       DATABASE_URL: postgres://arc:arc@db:5432/arc
       ETHEREUM_RPC_URL: https://rpc.mevblocker.io
+      INDEX_TOKEN: ""
       INDEX_MINUTES: "60"
       INDEX_MODE: launch
     depends_on:

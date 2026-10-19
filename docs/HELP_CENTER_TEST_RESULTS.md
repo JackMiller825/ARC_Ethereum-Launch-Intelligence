@@ -17,3 +17,8 @@ Recorded 2026-10-18.
 | Playwright screenshots | Not added. There is no stored pixel baseline. |
 
 `npm run build:pages` compiled and exported 11 static routes, including `/help`. `out/help/index.html` exists. The title is in the client chunk because the page is a client component. `app/api/analyze/route.ts` was restored after the export. GitHub Pages does not run the worker.
+
+## 2026-10-19 empty start
+
+`npm test` passed 52 tests and skipped 3 live tests. Getting Started no longer contains the old example contract. The help home shows a registered-feature list. Details of the local Pages preview are in `docs/TOKEN_NEUTRALITY_TEST_RESULTS.md`. The 2026-10-18 browser row above describes that earlier build.
+

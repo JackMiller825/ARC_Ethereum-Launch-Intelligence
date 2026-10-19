@@ -37,7 +37,7 @@ export default function Bots() {
         <StatProgress label={active ? `Valued buys on ${active.token.symbol}` : 'Indexed evidence'} value={active ? `${formatEth(wei.toString())} ETH` : '—'} percentage={active && BigInt(active.kpis.grossBuyWei) > 0n ? Number((wei * 100n) / BigInt(active.kpis.grossBuyWei)) : 0} />
         <TrendChart trades={matched} label={`${chosen.name} chronology`} />
         <div className="detail-divider" />
-        <h4>{matched.length ? `${matched.length} supporting trades` : 'No trades in the active snapshot'}</h4>
+        <h4>{matched.length ? `${matched.length} supporting trades` : 'No qualifying swaps were found in the selected interval.'}</h4>
         {(matched[0]?.evidence || ['First execution block and swap ordering', 'Contract code versus EOA router calls', 'Repeated leader-lag', 'Round-trip timing', 'Model version on every row']).slice(0, 6).map((item, index) => <div className="evidence-row" key={item}><span>{String(index + 1).padStart(2, '0')}</span>{item}</div>)}
         <div className="data-boundary nested"><ShieldCheck size={18} /><div><strong>Unknown is a real bucket.</strong><p>High and medium evidence enter the automated KPI. Low and unknown remain visible and are not relabeled to fill a target share.</p></div></div>
       </div></div>

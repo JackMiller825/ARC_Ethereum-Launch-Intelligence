@@ -2,8 +2,13 @@ import { createPublicClient, http, parseAbiItem, getAddress, decodeEventLog, for
 import { mainnet } from 'viem/chains';
 import { writeFileSync } from 'fs';
 
-const pair = getAddress('0x37D005660753714C6D3930cA4884B90033e232A9');
-const token = getAddress('0xe6f94f305ce2a00219fd4d476aa79f37304ffe8b');
+const pairAddress = process.env.PAIR_ADDRESS || '';
+const token = process.env.INDEX_TOKEN ? getAddress(process.env.INDEX_TOKEN) : '';
+if (!token || !pairAddress) {
+  console.error('Set INDEX_TOKEN and PAIR_ADDRESS to capture a swap. This script does not pick a token.');
+  process.exit(1);
+}
+const pair = getAddress(pairAddress);
 const client = createPublicClient({ chain: mainnet, transport: http('https://rpc.mevblocker.io', { timeout: 30000 }) });
 const swapEvent = parseAbiItem('event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)');
 const mintEvent = parseAbiItem('event Mint(address indexed sender, uint256 amount0, uint256 amount1)');
@@ -30,7 +35,7 @@ if (swaps[0]) {
   const tx = await client.getTransaction({ hash: s.transactionHash });
   const block = await client.getBlock({ blockNumber: s.blockNumber });
   const fixture = {
-    note: 'Real Ethereum mainnet Uniswap V2 Swap log for SISH/WETH. Captured for replay tests. Not synthetic.',
+    note: 'Captured swap log for replay tests. Not synthetic.',
     pair,
     token,
     token0,

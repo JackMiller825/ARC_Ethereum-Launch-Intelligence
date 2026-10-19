@@ -21,9 +21,9 @@ $env:LIVE='1'; npm run test:live   # PowerShell: real mainnet read
 
 ## GitHub Pages
 
-Pushes to `main` run `.github/workflows/pages.yml`. The pages build copies `app/api` outside the App Router, exports a static site, and restores the API routes. The published site is:
+Pushes to `main` run `.github/workflows/pages.yml`. The pages build copies `app/api` outside the App Router, exports a static site from the domain root, and restores the API routes. `public/CNAME` is copied into the export so the custom domain stays attached.
 
-https://jackmiller825.github.io/ARC_Ethereum-Launch-Intelligence/
+https://analyze-research-capital.site/
 
 Indexing on that site happens in the browser. There is no Postgres there.
 
@@ -35,7 +35,7 @@ docker compose up --build
 
 - Web UI: http://localhost:3000
 - Postgres: `postgres://arc:arc@localhost:5432/arc`
-- Worker: indexes the `INDEX_TOKEN` argument (the compose file passes the SISH reference CA for a 60 minute launch window)
+- Worker: indexes the `INDEX_TOKEN` argument. The compose file leaves that variable empty, so the worker does not start on a preset contract. Set any ERC-20 address when you want a run.
 
 Run another token from the host:
 

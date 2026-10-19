@@ -14,10 +14,12 @@ describe('help center', () => {
     }
   });
 
-  it('points glossary entries at articles and keeps the SISH example', () => {
+  it('points glossary entries at articles and starts without a sample contract', () => {
     for (const entry of Object.values(GLOSSARY)) expect(articleById(entry.article)?.id).toBe(entry.article);
     const start = articleById('getting-started');
-    expect(start?.sections.some((section) => section.body.some((line) => line.includes('0xe6f94f305ce2a00219fd4d476aa79f37304ffe8b')))).toBe(true);
+    const text = start?.sections.map((section) => section.body.join(' ')).join(' ') || '';
+    expect(text).toMatch(/starts empty|does not select a token/i);
+    expect(text.toLowerCase()).not.toContain('sish');
   });
 
   it('ranks a title match ahead of a body mention and returns nothing for noise', () => {

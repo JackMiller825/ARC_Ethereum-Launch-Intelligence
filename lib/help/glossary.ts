@@ -104,6 +104,38 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     limitation: 'The bundled list and any live directory that responded are the scope. No match is not a trademark clearance.',
     article: 'brand-intelligence',
   },
+  'research-quality': {
+    id: 'research-quality',
+    title: 'Research completeness',
+    summary: 'A score of how much of the indexed window could be reconstructed. It is not a safety rating.',
+    formula: 'mean of block coverage, pool presence, reconciliation, valuation completeness, and a capped finality term',
+    limitation: 'A high score does not mean the token is safe or that the head block is finalized.',
+    article: 'launch-laboratory',
+  },
+  replay: {
+    id: 'replay',
+    title: 'Launch replay',
+    summary: 'Playback of swaps already stored for one saved token, in block order.',
+    formula: 'cursor walks the stored trade list; no row is synthesized',
+    limitation: 'A minute with no valued swap is omitted. That omission is not a measured zero when coverage is provisional.',
+    article: 'launch-laboratory',
+  },
+  simulation: {
+    id: 'simulation',
+    title: 'Constant-product simulation',
+    summary: 'Hypothetical Uniswap V2 output and impact for reserves you type.',
+    formula: 'amountOut = amountInWithFee × reserveOut ÷ (reserveIn × 10000 + amountInWithFee), fee 30 bps unless stated',
+    limitation: 'This is not recorded market history. V3 and V4 concentrated liquidity are not simulated with this curve.',
+    article: 'launch-laboratory',
+  },
+  readiness: {
+    id: 'readiness',
+    title: 'Launch readiness',
+    summary: 'Operational states for brand, contract, liquidity, RPC, monitoring, and post-launch export.',
+    formula: 'ready, needs review, blocked, or not assessed, from inputs that are actually present',
+    limitation: 'Ready is not a prediction of buyers, price, or a permission audit.',
+    article: 'launch-planner',
+  },
 };
 
 export function glossaryEntry(id: string) {

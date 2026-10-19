@@ -73,7 +73,7 @@ export function ContractSearchHero({
         <p>Investigate real trading activity, automated strategies, liquidity movements, and the wallets behind every Ethereum token.</p>
         <form className="hero-search" data-tour="ca-search" onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
           <Search size={18} />
-          <input aria-label="Ethereum token contract address" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Search Ethereum token name or paste contract address..." spellCheck={false} />
+          <input aria-label="Ethereum token contract address" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Paste an Ethereum contract address" spellCheck={false} />
           <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Indexing…' : 'Analyze Token'} <ArrowRight size={15} /></button>
         </form>
         <div className="hero-meta">

@@ -1,0 +1,72 @@
+{
+  "overview": {
+    "hash": "0e8a0a29946806b8ea8015007a4b24927a04098edcc7575210dec8a0e6b2623b",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "analyzer": {
+    "hash": "0afcde86846a1e8349312ad92aa2d2411177e2a6f2a402ec7e96a6164a344db5",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "brand": {
+    "hash": "493210f175bff2eb915b20d1903b5d37d58143bd58e204c0ec6458ef586b2e87",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "planner": {
+    "hash": "3de971ed143282c1a6fb6bb0622b7583e6c910941280a31810df50d26bb51a1c",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "bots": {
+    "hash": "ff962ba6fdaa8207cdf62f3f52cb940f6cc23ffe3d2717b1ae8ab7d60ba26bad",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "wallets": {
+    "hash": "9aac45239c9026a3acccadfac20429e46f527efbd876a5f0061a30f81f119f0d",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "history": {
+    "hash": "6bfaea42bb29b6153778cc46618bcc684f5451c39f95de7fece13d11db745e0a",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "settings": {
+    "hash": "1193876dae3814faed745dcb2ecd7c2b633d606217879f6bdd0a3c22ecdbc935",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "help": {
+    "hash": "00f0de0e1e1c46c649d91dd441038a63456b0fd21780fd74d3f7e1d5a6e747cb",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "intervals": {
+    "hash": "113f2a6e03dd7f2dca5ab0ae97c9a0eee73fa69b4709e99292412fc6a71f3793",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "coverage": {
+    "hash": "ceec21457a290c02d33b09fccccfb4f4319bda6e6000b7dc2224bf4a5ece60e2",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "laboratory": {
+    "hash": "49811fcdf9ca8c9982f8191ef96336796ee363a89aab7a790b75e88ff6016d59",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "assistant": {
+    "hash": "97918278aaa04a45df254d615806e9968458dc4171021d7109041077354ac498",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  },
+  "docs": {
+    "hash": "d84f4a96ac367985d501c3705efd8ed36b1ac997b310de43cee981f5993a8246",
+    "decision": "updated",
+    "note": "Reviewed with the token-neutral empty start."
+  }
+}

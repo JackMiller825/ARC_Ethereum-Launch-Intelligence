@@ -4,6 +4,7 @@ import { CATEGORY_META, CRITERIA, criteriaIn, criterionById } from './rubric';
 import { normalizeWeights, profileById } from './profiles';
 import type { BrandAnalysis, BrandInput, CategoryId, CategoryScore, CollisionFinding, CriterionAssessment, EvidenceClass, ProfileId, Sufficiency } from './types';
 import { RUBRIC_VERSION } from './types';
+import { existingTokenId } from '../token/identity';
 import { clampScore, fold, hasEmoji, initialsOf, mixedScript, normalizeName, normalizeTicker, slug, wordsOf } from './text';
 
 const LIMITATIONS = [
@@ -83,7 +84,7 @@ function scored(id: string, score: number, rationale: string, advice: string, su
 
 function gap(id: string, status: 'insufficient' | 'unknown', rationale: string): CriterionAssessment {
   const def = criterionById(id);
-  return { id, score: null, status, weight: def.weight, evidence: def.method === 'deterministic' ? 'deterministic' : 'editorial-rubric', sufficiency: 'none', rationale, advice: 'Add the missing context and run the rubric again. This item was not given a zero.', riskSeverity: null, source: null };
+  return { id, score: null, status, weight: def.weight, evidence: def.method === 'deterministic' ? 'deterministic' : 'editorial-rubric', sufficiency: 'none', rationale, advice: 'More information is needed to assess this factor.', riskSeverity: null, source: null };
 }
 
 function risk(id: string, severity: number, rationale: string, advice: string, sufficiency: Sufficiency = 'medium', evidence: EvidenceClass = 'editorial-rubric', source: string | null = null): CriterionAssessment {
@@ -257,7 +258,7 @@ function aggregate(criteria: CriterionAssessment[], weights: BrandAnalysis['weig
 export function candidateKey(input: BrandInput) {
   const address = (input.address || '').toLowerCase();
   if (input.mode === 'historical') return `hist:${address}:${fold(input.name)}:${normalizeTicker(input.ticker)}`;
-  if (input.mode === 'existing' && address) return `ca:${address}`;
+  if (input.mode === 'existing' && address) return existingTokenId(1, address);
   return `idea:${fold(input.name)}:${normalizeTicker(input.ticker)}`;
 }
 

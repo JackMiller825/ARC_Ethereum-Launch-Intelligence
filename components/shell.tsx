@@ -6,7 +6,9 @@ import { versionMismatch } from '@/lib/analytics/version-check';
 import { BASE_PATH, BUILD_TIME, COMMIT_SHA, shortSha } from '@/lib/build-info';
 import { TourDock } from './tour';
 import { WorkspaceProvider, useWorkspace } from './workspace';
-import { Activity, Bell, BookOpen, Bot, ChevronRight, CircleHelp, History, LayoutDashboard, Menu, Search, Settings2, Sparkles, Target, Wallet, X } from './icons';
+import { Activity, Bell, BookOpen, Bot, ChevronRight, CircleHelp, History, LayoutDashboard, LineChart, Menu, Search, Settings2, Sparkles, Target, Wallet, X } from './icons';
+import { CommandPalette } from './command-palette';
+import { resolveLookup } from '@/lib/research/lookup';
 
 function VersionNotice() {
   const [stale, setStale] = useState('');
@@ -32,6 +34,7 @@ const navigation = [
   { section: 'RESEARCH', items: [
     { href: '/wallets', name: 'Wallet Explorer', icon: Wallet },
     { href: '/history', name: 'Token History', icon: History },
+    { href: '/laboratory', name: 'Launch Laboratory', icon: LineChart },
   ] },
   { section: 'BRAND INTELLIGENCE', items: [
     { href: '/brand-intelligence', name: 'Name & Ticker Analyzer', icon: Sparkles },
@@ -98,7 +101,7 @@ function Frame({ children }: { children: React.ReactNode }) {
           <strong>{page}</strong>
           <span>{token ? `${token.name} · ${token.symbol}` : 'No token selected'}</span>
         </div>
-        <form className="top-search" onSubmit={(event) => { event.preventDefault(); const next = query.trim(); router.push(next ? `/analysis?ca=${encodeURIComponent(next)}` : '/analysis'); setQuery(''); }}>
+        <form className="top-search" onSubmit={(event) => { event.preventDefault(); const found = resolveLookup(query, workspace.snapshots.map((item) => ({ address: item.token.address, symbol: item.token.symbol, name: item.token.name }))); const next = found.kind === 'token' || found.kind === 'address' ? `/analysis?ca=${encodeURIComponent(found.address)}` : found.kind === 'empty' ? '/analysis' : `/history?q=${encodeURIComponent(query.trim())}`; router.push(next); setQuery(''); }}>
           <Search size={15} />
           <input aria-label="Global contract search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Paste a contract address" spellCheck={false} />
         </form>
@@ -110,7 +113,7 @@ function Frame({ children }: { children: React.ReactNode }) {
           <Link className="icon-btn" href="/settings" aria-label="Settings"><Settings2 size={16} /></Link>
         </div>
       </header>
-      <main className="content"><VersionNotice />{children}<Suspense fallback={null}><TourDock /></Suspense></main>
+      <main className="content"><VersionNotice /><CommandPalette />{children}<Suspense fallback={null}><TourDock /></Suspense></main>
       <footer className="footer"><span>ARC / ETHEREUM RESEARCH TERMINAL</span><span>Chain metrics stay blank until logs are indexed</span></footer>
     </div>
     {open && <button className="mobile-backdrop" aria-label="Close navigation" onClick={() => setOpen(false)} />}

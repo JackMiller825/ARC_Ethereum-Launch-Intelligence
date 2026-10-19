@@ -4,7 +4,7 @@ import type { AnalysisSuccess, AppSettings, LibraryCatalog, Playbook, WalletLabe
 import { DEFAULT_RPCS } from '../chain/constants';
 
 const DB_NAME = 'arc-launch-intelligence';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export const defaultSettings: AppSettings = {
   rpcUrls: [],
@@ -48,7 +48,7 @@ function openDb() {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      for (const name of ['snapshots', 'playbooks', 'settings', 'labels', 'checkpoints', 'catalog', 'brandAnalyses', 'brandComparisons']) {
+      for (const name of ['snapshots', 'playbooks', 'settings', 'labels', 'checkpoints', 'catalog', 'brandAnalyses', 'brandComparisons', 'notes', 'recalls', 'alerts']) {
         if (!db.objectStoreNames.contains(name)) db.createObjectStore(name);
       }
     };
@@ -169,4 +169,35 @@ export async function listBrandComparisons() {
 
 export function rpcList(settings: AppSettings) {
   return [...settings.rpcUrls, ...DEFAULT_RPCS];
+}
+
+export type ResearchNote = { id: string; tokenId: string; body: string; updatedAt: number };
+export type RecallSession = { id: string; name: string; ticker: string; responses: { name: string; ticker: string; meaning: string }[]; createdAt: number };
+
+export async function listNotes() {
+  const ids = await keys('notes');
+  const rows = await Promise.all(ids.map((id) => read<ResearchNote>('notes', id)));
+  return rows.filter((row): row is ResearchNote => Boolean(row)).sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export async function saveNote(note: ResearchNote) {
+  await write('notes', note.id, note);
+}
+
+export async function listRecalls() {
+  const ids = await keys('recalls');
+  const rows = await Promise.all(ids.map((id) => read<RecallSession>('recalls', id)));
+  return rows.filter((row): row is RecallSession => Boolean(row));
+}
+
+export async function saveRecall(session: RecallSession) {
+  await write('recalls', session.id, session);
+}
+
+export async function loadAlertLog() {
+  return (await read<import('../analytics/alerts').ResearchAlert[]>('alerts', 'log')) || [];
+}
+
+export async function saveAlertLog(alerts: import('../analytics/alerts').ResearchAlert[]) {
+  await write('alerts', 'log', alerts.slice(-100));
 }

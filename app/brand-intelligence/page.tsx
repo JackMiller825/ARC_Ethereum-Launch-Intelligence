@@ -13,7 +13,9 @@ import { resolveOnchainIdentity } from '@/lib/brand/resolve';
 import { analyzeBrand } from '@/lib/brand/score';
 import type { BrandAnalysis, BrandInput, CategoryId, ComparisonSession, ImprovementSuggestion, ProfileId } from '@/lib/brand/types';
 import { CATEGORY_IDS } from '@/lib/brand/types';
-import { listBrandAnalyses, rpcList, saveBrandAnalysis, saveBrandComparison } from '@/lib/store/idb';
+import { listBrandAnalyses, listRecalls, rpcList, saveBrandAnalysis, saveBrandComparison, saveRecall, type RecallSession } from '@/lib/store/idb';
+import { recallStats } from '@/lib/brand/recall';
+import { ResearchAssistant } from '@/components/assistant';
 
 const STAGES = ['Input validation', 'Linguistic assessment', 'Ticker assessment', 'Narrative assessment', 'Collision research', 'Brand compatibility', 'Final aggregation'];
 
@@ -58,6 +60,11 @@ function BrandPage() {
   const [session, setSession] = useState<ComparisonSession | null>(null);
   const [compareText, setCompareText] = useState(params.get('candidates') || '');
   const [saved, setSaved] = useState<BrandAnalysis[]>([]);
+  const [recall, setRecall] = useState<RecallSession | null>(null);
+  const [shown, setShown] = useState(false);
+  const [recallName, setRecallName] = useState('');
+  const [recallTicker, setRecallTicker] = useState('');
+  const [recallMeaning, setRecallMeaning] = useState('');
   const [error, setError] = useState('');
   const [researchNote, setResearchNote] = useState('Live directories have not been queried.');
   const [tab, setTab] = useState('Overview');
@@ -72,7 +79,7 @@ function BrandPage() {
     return 'done';
   }
 
-  useEffect(() => { void listBrandAnalyses().then(setSaved).catch(() => setSaved([])); }, []);
+  useEffect(() => { void listBrandAnalyses().then(setSaved).catch(() => setSaved([])); void listRecalls().then((rows) => setRecall(rows[0] || null)).catch(() => undefined); }, []);
 
   function weights() {
     return profileId === 'custom' ? normalizeWeights(custom) : undefined;
@@ -116,7 +123,7 @@ function BrandPage() {
       setName(resolved.name);
       setTicker(resolved.symbol);
     } else if (!nextName.trim() && !nextTicker.trim()) {
-      setError('Enter a name or a ticker. A contract is not required.');
+      setError('Add a proposed name and ticker to evaluate its branding.');
       return;
     }
     const now = Date.now();
@@ -131,7 +138,7 @@ function BrandPage() {
     for (const finding of live.findings) if (!merged.some((item) => item.id === finding.id)) merged.push(finding);
     const next = analyzeBrand(input, { collisions: merged, profileId, weights: weights(), now, researchSources: [{ id: 'bundled-reference', status: 'ok', note: 'Short public list shipped with ARC.', checkedAt: now }, ...live.sources] });
     setAnalysis(next);
-    setResearchNote(live.sources.some((item) => item.status === 'ok') ? 'Live directories that responded are included. Domain, trademark, and web search are not configured.' : 'Live directories were unavailable. Uniqueness was not invented.');
+    setResearchNote(live.sources.some((item) => item.status === 'ok') ? 'Live directories that responded are included. Domain, trademark, and web search are not configured.' : 'Some data sources could not be verified. Results may be incomplete. Uniqueness was not invented.');
     await saveBrandAnalysis(next).catch(() => undefined);
   }
 
@@ -207,6 +214,8 @@ function BrandPage() {
       </div>
       {tab === 'Report' && <section className="panel"><h3>Advanced explanation</h3>{editorialReport(analysis).advanced.slice(0, 12).map((line) => <p key={line} className="panel-desc">{line}</p>)}<p className="panel-desc">The full factor list is on All factors. These lines cite the same ids.</p></section>}
     </>}
+    <section className="panel"><div className="panel-eyebrow">RECALL</div><h3>Five-second check</h3><p className="panel-desc">Shows the name and ticker you typed, then hides them. Only responses you save are counted. This is not a crowd study.</p>{shown && <p><strong>{name || 'Name not set'} / {ticker || 'Ticker not set'}</strong></p>}<button className="btn secondary" type="button" onClick={() => { setShown(true); window.setTimeout(() => setShown(false), 5000); }}>Show for 5 seconds</button><div className="parameter-grid"><label>Recalled name<input aria-label="Recalled name" value={recallName} onChange={(event) => setRecallName(event.target.value)} /></label><label>Recalled ticker<input aria-label="Recalled ticker" value={recallTicker} onChange={(event) => setRecallTicker(event.target.value)} /></label><label>Recalled meaning<input aria-label="Recalled meaning" value={recallMeaning} onChange={(event) => setRecallMeaning(event.target.value)} /></label></div><button className="btn ghost" type="button" onClick={() => { const next: RecallSession = { id: recall?.id || `recall:${name}:${ticker}`, name, ticker, createdAt: recall?.createdAt || Date.now(), responses: [...(recall?.responses || []), { name: recallName, ticker: recallTicker, meaning: recallMeaning }] }; void saveRecall(next).then(() => setRecall(next)); setRecallName(''); setRecallTicker(''); setRecallMeaning(''); }}>Save response</button>{recall && <p className="panel-desc">n={recallStats({ name: recall.name, ticker: recall.ticker }, recall.responses).n}. Name recall {recallStats({ name: recall.name, ticker: recall.ticker }, recall.responses).nameRate === null ? '—' : `${Math.round((recallStats({ name: recall.name, ticker: recall.ticker }, recall.responses).nameRate || 0) * 100)}%`}. {recallStats({ name: recall.name, ticker: recall.ticker }, recall.responses).note}</p>}</section>
+    {analysis && <ResearchAssistant context={{ snapshot: null, peers: [], brand: { name: analysis.input.name, ticker: analysis.input.ticker, overall: analysis.overall, coverage: analysis.coverage } }} />}
     <section className="panel"><div className="panel-eyebrow">SAVED IN THIS BROWSER</div><h3>Brand records</h3>{saved.length === 0 && <p className="panel-desc">Nothing saved yet. A refresh keeps records that were written to IndexedDB.</p>}{saved.slice(0, 12).map((item) => <button key={item.id} className="coverage-row" type="button" onClick={() => { setAnalysis(item); setName(item.input.name); setTicker(item.input.ticker); }}><span>{item.input.name} / {item.input.ticker}</span><Pill kind="blue">{item.overall ?? item.label}</Pill></button>)}</section>
   </>;
 }

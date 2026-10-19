@@ -14,7 +14,7 @@ Research terminal for any Ethereum ERC-20. Paste a contract, pick a window from 
 | Postgres worker | `docker compose` and `npm run worker` |
 | Synthetic trades | Settings toggle, off by default |
 
-A verified replay is `tests/fixtures/sish-v2-swap.json`: Uniswap V2 pair `0x37D005660753714C6D3930cA4884B90033e232A9`, buy transaction `0x45027976301cbc566f0d2743b375f184592433fb8f18884cad56c68197c8b504`, block `26131840`, `10931399327655039` wei. `npm run test:live` reads that swap back from mainnet.
+The interface starts with no token selected. A verified replay used only by tests is `tests/fixtures/sish-v2-swap.json`: Uniswap V2 pair `0x37D005660753714C6D3930cA4884B90033e232A9`, buy transaction `0x45027976301cbc566f0d2743b375f184592433fb8f18884cad56c68197c8b504`, block `26131840`, `10931399327655039` wei. `npm run test:live` reads that swap back from mainnet. That file is not imported by the interface.
 
 ## Commands
 

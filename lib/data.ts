@@ -4,13 +4,11 @@ import { ordinalScore, shortAddr } from './format';
 import { computeKpis } from './chain/kpis';
 
 export { durations, shortAddr, filterTrades };
-export const REFERENCE_CA = '0xe6f94f305ce2a00219fd4d476aa79f37304ffe8b';
 
-/** Explicit demo fixtures. Pages may render these only while Settings → demo mode is on. */
+/** Layout-only cards. Rendered only while Settings demo mode is on. Not a saved history and not a chain read. */
 export const sampleTokens: Token[] = [
-  { address: REFERENCE_CA, name: 'SI, Still Human', symbol: 'SISH', decimals: 9, launch: '2026-10-06T07:27:23Z', status: 'Reference CA', initialEth: null, holders: null, source: 'demo', verified: true },
-  { address: '0x1111111111111111111111111111111111111111', name: 'Example Alpha', symbol: 'ALPHA', decimals: 18, launch: '2026-10-12T12:00:00Z', status: 'Synthetic example', initialEth: 2, holders: 87, source: 'demo' },
-  { address: '0x2222222222222222222222222222222222222222', name: 'Example Beta', symbol: 'BETA', decimals: 18, launch: '2026-10-15T10:00:00Z', status: 'Synthetic example', initialEth: 5, holders: 142, source: 'demo' },
+  { address: '0x1111111111111111111111111111111111111111', name: 'Example Alpha', symbol: 'ALPHA', decimals: 18, launch: '', status: 'Synthetic example', initialEth: null, holders: null, source: 'demo' },
+  { address: '0x2222222222222222222222222222222222222222', name: 'Example Beta', symbol: 'BETA', decimals: 18, launch: '', status: 'Synthetic example', initialEth: null, holders: null, source: 'demo' },
 ];
 
 const classes = ['Sniper', 'New-pair scanner', 'Copy-trading', 'Momentum', 'Arbitrage', 'Unknown', 'Unknown'] as const;

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { dedupeAlerts, diffAlerts, type ResearchAlert } from '@/lib/analytics/alerts';
 import { extendAnalysis } from '@/lib/chain/tail';
 import { useWorkspace } from './workspace';
-import { saveSnapshot } from '@/lib/store/idb';
+import { loadAlertLog, saveAlertLog, saveSnapshot } from '@/lib/store/idb';
 import type { RefreshMode } from '@/lib/types';
 
 const MODES: { id: RefreshMode; label: string }[] = [
@@ -39,6 +39,7 @@ export function LiveMonitor() {
       const incoming = diffAlerts(current, next, { minBuyEth: settings.alertBuyEth, minSellEth: settings.alertSellEth, coverageFloor: settings.coverageFloor, buyerBurst: 5 });
       setAlerts((existing) => {
         const merged = dedupeAlerts(existing, incoming);
+        void saveAlertLog(merged);
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
           incoming.forEach((item) => new Notification(`${item.token}: ${item.summary}`));
         }
@@ -49,12 +50,14 @@ export function LiveMonitor() {
       const age = Math.max(0, Math.round((Date.now() - next.coverage.indexedAt) / 1000));
       setNote(`Head ${next.coverage.headBlock}. Indexed through ${next.coverage.toBlock}. ${next.token.status}. Updated ${age}s ago. A refresh interval does not change block time or finality.`);
     } catch (error) {
-      setAlerts((existing) => dedupeAlerts(existing, [{ id: `index:${Date.now()}`, token: current.token.symbol, kind: 'index', at: Date.now(), summary: error instanceof Error ? error.message : 'Live tail failed' }]));
+      setAlerts((existing) => { const merged = dedupeAlerts(existing, [{ id: `index:${Date.now()}`, token: current.token.symbol, kind: 'index', at: Date.now(), summary: error instanceof Error ? error.message : 'Live tail failed' }]); void saveAlertLog(merged); return merged; });
       setNote('The live tail failed. The stored snapshot was not replaced with estimated trades.');
     } finally {
       busy.current = false;
     }
   }
+
+  useEffect(() => { void loadAlertLog().then(setAlerts).catch(() => undefined); }, []);
 
   useEffect(() => {
     const ms = delay(settings.refreshMode);

@@ -7,7 +7,7 @@ export type Tour = {
 export const TOURS: Tour[] = [
   { id: 'first-analysis', title: 'First token analysis', steps: [
     { title: 'Open the analyzer', body: 'Token Analyzer is where a contract is indexed.', href: '/analysis', target: 'ca-search' },
-    { title: 'Paste a contract', body: 'Use a full 0x address. The $SISH example is filled from Quick research if you want a known contract.', href: '/analysis', target: 'ca-search' },
+    { title: 'Paste a contract', body: 'Use a full 0x address you chose. The field starts empty.', href: '/analysis', target: 'ca-search' },
     { title: 'Choose a window', body: 'Since launch, rolling, or absolute. Short presets are visible. More holds the rest through 30 days.', href: '/analysis', target: 'interval' },
     { title: 'Read the result', body: 'Gross figures are valued ETH. Net flow is buys minus sells. Coverage under 100% means a gap is still listed.', href: '/analysis' },
   ] },
@@ -31,6 +31,10 @@ export const TOURS: Tour[] = [
   { id: 'brand', title: 'First name and ticker review', steps: [
     { title: 'Open Brand Intelligence', body: 'A contract is optional. A future name is a proposal, not a launched token.', href: '/brand-intelligence', target: 'brand-name' },
     { title: 'Read coverage before the number', body: 'Story factors stay unscored until you write a narrative. That is not a zero, and it is not a forecast.', href: '/brand-intelligence', target: 'brand-score' },
+  ] },
+  { id: 'laboratory', title: 'Replay a saved launch', steps: [
+    { title: 'Open Launch Laboratory', body: 'Pick a token you already indexed. Playback does not invent swaps.', href: '/laboratory' },
+    { title: 'Keep simulation labeled', body: 'The reserve form is hypothetical. V3 and V4 are not run through the V2 curve.', href: '/laboratory' },
   ] },
 ];
 

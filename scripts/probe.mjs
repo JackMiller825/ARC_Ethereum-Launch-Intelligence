@@ -1,7 +1,11 @@
 import { createPublicClient, http, parseAbi, getAddress } from 'viem';
 import { mainnet } from 'viem/chains';
 
-const token = getAddress('0xe6f94f305ce2a00219fd4d476aa79f37304ffe8b');
+if (!process.env.INDEX_TOKEN) {
+  console.error('Set INDEX_TOKEN to the ERC-20 you want to probe.');
+  process.exit(1);
+}
+const token = getAddress(process.env.INDEX_TOKEN);
 const WETH = getAddress('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2');
 const USDC = getAddress('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48');
 const V2 = getAddress('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f');

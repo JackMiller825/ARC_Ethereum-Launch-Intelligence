@@ -446,3 +446,8 @@ mark { background: rgba(192, 132, 252, 0.35); color: white; border-radius: 3px; 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+.palette-backdrop { position: fixed; inset: 0; background: rgba(7, 7, 18, .72); z-index: 70; display: grid; align-items: start; justify-items: center; padding-top: 12vh; }
+.palette { width: min(560px, calc(100vw - 32px)); background: #111126; border: 1px solid rgba(196, 181, 253, .35); border-radius: 16px; padding: 12px; display: grid; gap: 8px; }
+.palette input, .palette button { width: 100%; text-align: left; }
+.palette button { background: transparent; color: inherit; border: 0; padding: 8px 10px; border-radius: 8px; }
+.palette button:hover { background: rgba(139, 92, 246, .22); }

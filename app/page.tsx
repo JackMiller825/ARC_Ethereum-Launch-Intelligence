@@ -35,16 +35,17 @@ export default function Overview() {
   const partial = Boolean(active && minutes > active.window.minutes);
   const showDashboard = Boolean(active || demo);
   return <>
-    <PageHeading eyebrow="COMMAND CENTER / OVERVIEW" title="See the whole launch." description="Paste a contract to open the analyzer. Figures appear after a real index, or from synthetic fixtures only when demo mode is on."><Link href="/analysis" className="btn primary"><Plus size={16} /> Analyze token</Link></PageHeading>
+    <PageHeading eyebrow="COMMAND CENTER / OVERVIEW" title="Analyze Any Ethereum Token." description="Enter a contract address to investigate an existing token, or evaluate a name and ticker before deployment."><Link href="/analysis" className="btn primary"><Plus size={16} /> Analyze Existing Token</Link></PageHeading>
     <form className="hero-search overview-search" onSubmit={(event) => { event.preventDefault(); const next = ca.trim(); router.push(next ? `/analysis?ca=${encodeURIComponent(next)}` : '/analysis'); }}>
       <Search size={18} />
       <input aria-label="Contract address" value={ca} onChange={(event) => setCa(event.target.value)} placeholder="Paste an Ethereum contract address" spellCheck={false} />
-      <button className="btn primary" type="submit">Analyze Token <ArrowRight size={15} /></button>
+      <button className="btn primary" type="submit">Analyze Existing Token <ArrowRight size={15} /></button>
     </form>
+    <div className="feature-actions"><Link href="/analysis" className="btn secondary">Analyze Existing Token</Link><Link href="/brand-intelligence?mode=future" className="btn secondary">Analyze Future Token</Link></div>
     {snapshots.length > 0 && <div className="recent-row">{snapshots.slice(0, 6).map((token) => <Link key={token.token.address} className="pill" href={`/analysis?ca=${token.token.address}`}>{token.token.symbol} · {shortAddr(token.token.address)}</Link>)}</div>}
     {demo && <DemoBadge />}
     {!ready && <div className="panel">Loading the local workspace…</div>}
-    {ready && !showDashboard && <section className="search-hero"><div className="search-hero-copy"><div className="feature-kicker"><span className="live-dot" /> FIRST ANALYSIS</div><h2>Paste a contract. Read the launch.</h2><p>No token is open in this browser, so the dashboard stays quiet instead of showing empty market cards. Index any ERC-20, then return here for the stored window.</p><div className="feature-actions"><Link href="/analysis" className="btn primary">Open Token Analyzer</Link><Link href="/help?article=getting-started" className="btn ghost">Read the guide</Link></div></div></section>}
+    {ready && !showDashboard && <section className="search-hero"><div className="search-hero-copy"><div className="feature-kicker"><span className="live-dot" /> NO TOKEN SELECTED</div><h2>Analyze Any Ethereum Token.</h2><p>Enter a contract address to investigate an existing token, or evaluate a name and ticker before deployment. Saved analyses appear only after you run them in this browser.</p><div className="feature-actions"><Link href="/analysis" className="btn primary">Analyze Existing Token</Link><Link href="/brand-intelligence?mode=future" className="btn secondary">Analyze Future Token</Link></div></div></section>}
     {showDashboard && <>
     <WindowControls interval={interval} setInterval={setInterval} custom={custom} setCustom={setCustom} />
     {partial && <div className="data-boundary"><ShieldCheck size={20} /><div><strong>Stored window is shorter than this selection</strong><p>This snapshot covers {active?.window.minutes} minutes, and the figures use that full window. Open the analyzer to index a longer interval.</p></div></div>}

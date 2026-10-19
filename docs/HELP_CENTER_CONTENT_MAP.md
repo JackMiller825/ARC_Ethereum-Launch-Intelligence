@@ -4,7 +4,7 @@ Updated 2026-10-18. Availability matches the running app.
 
 | Article | Category | Availability | Covers |
 |---|---|---|---|
-| getting-started | Getting Started | available | Nine-step path and the $SISH example `0xe6f94f305ce2a00219fd4d476aa79f37304ffe8b` |
+| getting-started | Getting Started | available | Empty start, then a contract or a future name. No sample token is filled in. |
 | token-analyzer | Token Analyzer | available | Search, windows, tabs, exports, browser live tail |
 | bot-intelligence | Bot Intelligence | available | Sniper, scanner, copy, momentum, arbitrage, sandwich, MEV, market-maker, unknown |
 | wallet-explorer | Wallet Explorer | available | Timeline, balance, Blockscout, project labels |

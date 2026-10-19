@@ -5,6 +5,7 @@ import { Download, ShieldCheck, Target } from '@/components/icons';
 import { PageHeading, Pill } from '@/components/ui';
 import { useWorkspace } from '@/components/workspace';
 import { liquidityScenarios } from '@/lib/analytics/liquidity';
+import { launchReadiness } from '@/lib/research/readiness';
 import { analyzeBrand } from '@/lib/brand/score';
 import { saveBrandAnalysis } from '@/lib/store/idb';
 import { formatEth } from '@/lib/format';
@@ -24,7 +25,7 @@ const steps = [
 ];
 
 export default function Planner() {
-  const { playbook, updatePlaybook, snapshots, active } = useWorkspace();
+  const { playbook, updatePlaybook, snapshots, active, settings } = useWorkspace();
   const [draft, setDraft] = useState<Playbook>(playbook);
   const [gas, setGas] = useState<string>('');
   const [ethPrice, setEthPrice] = useState('not read');
@@ -35,6 +36,7 @@ export default function Planner() {
   const all = steps.flatMap((step) => step.items);
   const toggle = (item: string) => setDraft((current) => ({ ...current, completed: current.completed.includes(item) ? current.completed.filter((value) => value !== item) : [...current.completed, item] }));
   const baseline = draft.tokenAddress ? snapshots.find((item) => item.token.address.toLowerCase() === draft.tokenAddress.toLowerCase()) || null : null;
+  const readiness = launchReadiness(draft, { snapshot: baseline, brandCoverage: null, customRpc: settings.rpcUrls.length > 0 });
   async function readGas() {
     try {
       const response = await fetch('https://rpc.mevblocker.io', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_gasPrice', params: [] }) });
@@ -56,6 +58,7 @@ export default function Planner() {
     <PageHeading eyebrow="STRATEGY / LAUNCH PLANNER" title="Engineer Your Next Launch." description="A research checklist with editable liquidity scenarios, monitoring assumptions, and an indexed baseline when you have one. These figures are hypothetical inputs, not a forecast."><button className="btn secondary" onClick={() => updatePlaybook(draft)}><Download size={15} /> Save plan</button></PageHeading>
     <div className="stepper" aria-label="Planner steps">{steps.map((step, index) => <button key={step.name} type="button" className={draft.completed.some((item) => step.items.includes(item)) ? 'selected' : ''} onClick={() => document.getElementById(`plan-step-${index}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}><span>0{index + 1}</span><strong>{['Brand', 'Project', 'Contract', 'Liquidity', 'Comparisons', 'Monitoring', 'Checklist', 'Post-launch'][index]}</strong></button>)}</div>
     <div className="data-boundary"><Target size={20} /><div><strong>Plan, not a purchase-trigger engine</strong><p>Assumptions are scenarios. They do not predict buyers, returns, or a way to manufacture volume. The checklist asks for a verified contract, real liquidity and plain-language risk reporting.</p></div></div>
+    <section className="panel"><div className="panel-eyebrow">READINESS</div><h3>Operational checks</h3><p className="panel-desc">Ready means the input for that check is present. It is not a prediction of commercial success.</p>{readiness.map((item) => <div className="coverage-row" key={item.id}><span>{item.label}</span><strong>{item.state}</strong><span>{item.detail}</span></div>)}</section>
     <section className="panel"><div className="panel-eyebrow">00 / BRAND IDENTITY</div><h3>{draft.tokenName || 'Name not set'} / {draft.ticker || 'ticker not set'}</h3><p className="panel-desc">This stage runs before a contract exists. It does not create holder data or volume. {draft.brandCandidateId ? `Saved candidate ${draft.brandCandidateId}.` : 'No brand record is linked yet.'}</p><div className="feature-actions"><Link className="btn secondary" href={`/brand-intelligence?mode=future&name=${encodeURIComponent(draft.tokenName)}&ticker=${encodeURIComponent(draft.ticker)}`}>Open full rubric</Link><button className="btn ghost" type="button" onClick={() => { if (!draft.tokenName && !draft.ticker) return; const record = analyzeBrand({ name: draft.tokenName, ticker: draft.ticker, mode: draft.plannedAddress ? 'existing' : 'future', address: draft.plannedAddress, narrative: draft.name }, { now: Date.now() }); void saveBrandAnalysis(record); setDraft({ ...draft, brandCandidateId: record.candidateId }); }}>Score and keep in this plan</button></div>{draft.plannedAddress && <p className="panel-desc">Planned contract {draft.plannedAddress} can be linked later. Earlier editorial scores stay stored and are not rewritten from trading results.</p>}</section>
     <div className="planner-layout"><div>
       <section className="panel planner-parameters"><div className="panel-header"><div><div className="panel-eyebrow">01 / LAUNCH ASSUMPTIONS</div><h3>Configure your scenario</h3></div><Pill kind="blue">Editable</Pill></div>
