@@ -333,10 +333,10 @@ textarea { width: 100%; }
 .history-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .history-ticker { color: var(--lavender); font-family: "JetBrains Mono", monospace; margin: 6px 0 10px; }
 .history-foot { margin-top: auto; padding-top: 12px; color: var(--lavender); font-weight: 700; display: flex; align-items: center; gap: 6px; }
-.parameter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.parameter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
 .parameter-grid label, .stack-label { font-size: 12px; color: var(--secondary); display: block; }
 .input-with-unit { display: flex; align-items: center; margin-top: 6px; border: 1px solid var(--line); border-radius: 12px; background: #0c0c1c; overflow: hidden; }
-.input-with-unit input, .input-with-unit select { border: 0; width: 100%; background: transparent; outline: none; }
+.input-with-unit input, .input-with-unit select { border: 0; width: 100%; min-height: 42px; background: transparent; outline: none; color-scheme: dark; }
 .input-with-unit > span { color: var(--muted); font: 11px "JetBrains Mono", monospace; padding-right: 10px; }
 .stepper { display: flex; gap: 8px; overflow: auto; padding-bottom: 8px; margin-bottom: 12px; }
 .stepper button { min-width: 140px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px; color: var(--secondary); }
