@@ -16,6 +16,7 @@ Updated 2026-10-18. Availability matches the running app.
 | rpc | RPC & Connectivity | limited | Browser RPC list. Worker exists in source and is not on Pages |
 | troubleshooting | Troubleshooting | available | Timeouts, rate limits, empty results, stale bundles, static hosting |
 | faq | Frequently Asked Questions | available | Chain, bots, DexScreener differences, exports, bug reports |
+| brand-intelligence | Name & Ticker Intelligence | available | 100-factor rubric, optional contract, coverage, collisions. Not a forecast or a legal clearance |
 
 Tours: first analysis, first bot investigation, first wallet, compare, planner, RPC. Each starts only from Help.
 

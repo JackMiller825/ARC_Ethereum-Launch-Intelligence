@@ -1,9 +1,10 @@
 import { emptyCatalog } from '../analytics/session';
+import type { BrandAnalysis, ComparisonSession } from '../brand/types';
 import type { AnalysisSuccess, AppSettings, LibraryCatalog, Playbook, WalletLabel } from '../types';
 import { DEFAULT_RPCS } from '../chain/constants';
 
 const DB_NAME = 'arc-launch-intelligence';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export const defaultSettings: AppSettings = {
   rpcUrls: [],
@@ -13,6 +14,7 @@ export const defaultSettings: AppSettings = {
   alertBuyEth: 0.5,
   alertSellEth: 0.5,
   coverageFloor: 90,
+  brandAuto: true,
 };
 
 export const defaultPlaybook = (): Playbook => ({
@@ -37,6 +39,7 @@ export const defaultPlaybook = (): Playbook => ({
   operationalBudget: 0,
   completed: [],
   milestones: [],
+  brandCandidateId: '',
   updatedAt: Date.now(),
 });
 
@@ -45,7 +48,7 @@ function openDb() {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      for (const name of ['snapshots', 'playbooks', 'settings', 'labels', 'checkpoints', 'catalog']) {
+      for (const name of ['snapshots', 'playbooks', 'settings', 'labels', 'checkpoints', 'catalog', 'brandAnalyses', 'brandComparisons']) {
         if (!db.objectStoreNames.contains(name)) db.createObjectStore(name);
       }
     };
@@ -128,8 +131,9 @@ export async function saveLabel(label: WalletLabel) {
 export async function clearWorkspace() {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(['snapshots', 'playbooks', 'labels', 'checkpoints', 'catalog'], 'readwrite');
-    ['snapshots', 'playbooks', 'labels', 'checkpoints', 'catalog'].forEach((name) => tx.objectStore(name).clear());
+    const names = ['snapshots', 'playbooks', 'labels', 'checkpoints', 'catalog', 'brandAnalyses', 'brandComparisons'].filter((name) => db.objectStoreNames.contains(name));
+    const tx = db.transaction(names, 'readwrite');
+    names.forEach((name) => tx.objectStore(name).clear());
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -141,6 +145,26 @@ export async function loadCatalog() {
 
 export async function saveCatalog(catalog: LibraryCatalog) {
   await write('catalog', 'library', catalog);
+}
+
+export async function saveBrandAnalysis(record: BrandAnalysis) {
+  await write('brandAnalyses', record.id, record);
+}
+
+export async function listBrandAnalyses() {
+  const ids = await keys('brandAnalyses');
+  const rows = await Promise.all(ids.map((id) => read<BrandAnalysis>('brandAnalyses', id)));
+  return rows.filter((row): row is BrandAnalysis => Boolean(row)).sort((a, b) => b.analyzedAt - a.analyzedAt);
+}
+
+export async function saveBrandComparison(record: ComparisonSession) {
+  await write('brandComparisons', record.id, record);
+}
+
+export async function listBrandComparisons() {
+  const ids = await keys('brandComparisons');
+  const rows = await Promise.all(ids.map((id) => read<ComparisonSession>('brandComparisons', id)));
+  return rows.filter((row): row is ComparisonSession => Boolean(row)).sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export function rpcList(settings: AppSettings) {

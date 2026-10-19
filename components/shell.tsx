@@ -6,7 +6,7 @@ import { versionMismatch } from '@/lib/analytics/version-check';
 import { BASE_PATH, BUILD_TIME, COMMIT_SHA, shortSha } from '@/lib/build-info';
 import { TourDock } from './tour';
 import { WorkspaceProvider, useWorkspace } from './workspace';
-import { Activity, Bell, BookOpen, Bot, ChevronRight, CircleHelp, History, LayoutDashboard, Menu, Search, Settings2, Target, Wallet, X } from './icons';
+import { Activity, Bell, BookOpen, Bot, ChevronRight, CircleHelp, History, LayoutDashboard, Menu, Search, Settings2, Sparkles, Target, Wallet, X } from './icons';
 
 function VersionNotice() {
   const [stale, setStale] = useState('');
@@ -32,6 +32,9 @@ const navigation = [
   { section: 'RESEARCH', items: [
     { href: '/wallets', name: 'Wallet Explorer', icon: Wallet },
     { href: '/history', name: 'Token History', icon: History },
+  ] },
+  { section: 'BRAND INTELLIGENCE', items: [
+    { href: '/brand-intelligence', name: 'Name & Ticker Analyzer', icon: Sparkles },
   ] },
   { section: 'SYSTEM', items: [
     { href: '/settings', name: 'Data & Settings', icon: Settings2 },

@@ -1,15 +1,19 @@
 "use client";
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Download, ShieldCheck, Target } from '@/components/icons';
 import { PageHeading, Pill } from '@/components/ui';
 import { useWorkspace } from '@/components/workspace';
 import { liquidityScenarios } from '@/lib/analytics/liquidity';
+import { analyzeBrand } from '@/lib/brand/score';
+import { saveBrandAnalysis } from '@/lib/store/idb';
 import { formatEth } from '@/lib/format';
 import { MAX_MINUTES } from '@/lib/intervals';
 import { turnoverNote } from '@/lib/chain/kpis';
 import type { Playbook } from '@/lib/types';
 
 const steps = [
+  { name: 'Brand identity', tag: 'PRE-DEPLOY', items: ['Choose a name and ticker before deployment', 'Review the editorial score and its coverage', 'Read collision findings and their source limits', 'Save the preferred candidate in this plan'] },
   { name: 'Foundation & contract checks', tag: 'PRE-LAUNCH', items: ['Verify deployed contract and ERC-20 metadata', 'Independently test successful buy AND sell paths', 'Identify admin rights, taxes and trading restrictions', 'Disclose project/insider allocations and wallets'] },
   { name: 'Liquidity and execution design', tag: 'PRE-LAUNCH', items: ['Choose pool protocol and initial ETH/token reserves', 'Calculate trade-size slippage scenarios', 'Confirm LP lock/burn method actually applies to this pool', 'Test routing, pricing, fee tiers and gas costs'] },
   { name: 'Discovery readiness', tag: 'T−15', items: ['Publish verified CA and direct router link', 'Prepare accurate website, X and Telegram information', 'Prepare read-only wallet/pool observability', 'Avoid fake buys, fabricated attention and wash trades'] },
@@ -50,8 +54,9 @@ export default function Planner() {
   }
   return <>
     <PageHeading eyebrow="STRATEGY / LAUNCH PLANNER" title="Engineer Your Next Launch." description="A research checklist with editable liquidity scenarios, monitoring assumptions, and an indexed baseline when you have one. These figures are hypothetical inputs, not a forecast."><button className="btn secondary" onClick={() => updatePlaybook(draft)}><Download size={15} /> Save plan</button></PageHeading>
-    <div className="stepper" aria-label="Planner steps">{steps.map((step, index) => <button key={step.name} type="button" className={draft.completed.some((item) => step.items.includes(item)) ? 'selected' : ''} onClick={() => document.getElementById(`plan-step-${index}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}><span>0{index + 1}</span><strong>{['Project', 'Contract', 'Liquidity', 'Comparisons', 'Monitoring', 'Checklist', 'Post-launch'][index]}</strong></button>)}</div>
+    <div className="stepper" aria-label="Planner steps">{steps.map((step, index) => <button key={step.name} type="button" className={draft.completed.some((item) => step.items.includes(item)) ? 'selected' : ''} onClick={() => document.getElementById(`plan-step-${index}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}><span>0{index + 1}</span><strong>{['Brand', 'Project', 'Contract', 'Liquidity', 'Comparisons', 'Monitoring', 'Checklist', 'Post-launch'][index]}</strong></button>)}</div>
     <div className="data-boundary"><Target size={20} /><div><strong>Plan, not a purchase-trigger engine</strong><p>Assumptions are scenarios. They do not predict buyers, returns, or a way to manufacture volume. The checklist asks for a verified contract, real liquidity and plain-language risk reporting.</p></div></div>
+    <section className="panel"><div className="panel-eyebrow">00 / BRAND IDENTITY</div><h3>{draft.tokenName || 'Name not set'} / {draft.ticker || 'ticker not set'}</h3><p className="panel-desc">This stage runs before a contract exists. It does not create holder data or volume. {draft.brandCandidateId ? `Saved candidate ${draft.brandCandidateId}.` : 'No brand record is linked yet.'}</p><div className="feature-actions"><Link className="btn secondary" href={`/brand-intelligence?mode=future&name=${encodeURIComponent(draft.tokenName)}&ticker=${encodeURIComponent(draft.ticker)}`}>Open full rubric</Link><button className="btn ghost" type="button" onClick={() => { if (!draft.tokenName && !draft.ticker) return; const record = analyzeBrand({ name: draft.tokenName, ticker: draft.ticker, mode: draft.plannedAddress ? 'existing' : 'future', address: draft.plannedAddress, narrative: draft.name }, { now: Date.now() }); void saveBrandAnalysis(record); setDraft({ ...draft, brandCandidateId: record.candidateId }); }}>Score and keep in this plan</button></div>{draft.plannedAddress && <p className="panel-desc">Planned contract {draft.plannedAddress} can be linked later. Earlier editorial scores stay stored and are not rewritten from trading results.</p>}</section>
     <div className="planner-layout"><div>
       <section className="panel planner-parameters"><div className="panel-header"><div><div className="panel-eyebrow">01 / LAUNCH ASSUMPTIONS</div><h3>Configure your scenario</h3></div><Pill kind="blue">Editable</Pill></div>
         <div className="parameter-grid">

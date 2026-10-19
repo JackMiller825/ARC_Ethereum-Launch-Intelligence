@@ -199,6 +199,7 @@ export type Playbook = {
   operationalBudget: number;
   completed: string[];
   milestones: { id: string; label: string; note: string }[];
+  brandCandidateId: string;
   updatedAt: number;
 };
 
@@ -220,6 +221,7 @@ export type AppSettings = {
   alertBuyEth: number;
   alertSellEth: number;
   coverageFloor: number;
+  brandAuto: boolean;
 };
 
 export type WalletLabel = { address: string; role: 'project' | 'independent'; note: string };

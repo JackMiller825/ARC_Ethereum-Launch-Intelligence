@@ -28,6 +28,10 @@ export const TOURS: Tour[] = [
   { id: 'rpc', title: 'Configure an RPC provider', steps: [
     { title: 'Open settings', body: 'One URL per line. Test the first URL, then save. Leave the list blank to use public fallbacks.', href: '/settings', target: 'rpc-list' },
   ] },
+  { id: 'brand', title: 'First name and ticker review', steps: [
+    { title: 'Open Brand Intelligence', body: 'A contract is optional. A future name is a proposal, not a launched token.', href: '/brand-intelligence', target: 'brand-name' },
+    { title: 'Read coverage before the number', body: 'Story factors stay unscored until you write a narrative. That is not a zero, and it is not a forecast.', href: '/brand-intelligence', target: 'brand-score' },
+  ] },
 ];
 
 const KEY = 'arc-help-tours';

@@ -80,6 +80,30 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     limitation: 'ARC cannot name a human operator from on-chain behavior alone.',
     article: 'bot-intelligence',
   },
+  'brand-score': {
+    id: 'brand-score',
+    title: 'Editorial quality score',
+    summary: 'Weighted average of the rubric factors that had enough information, on a 0–10 scale.',
+    formula: 'score = Σ (factor score × category weight × factor weight) ÷ Σ weights of scored factors',
+    limitation: 'This is not a probability of market success. Below 40% coverage the overall number is withheld.',
+    article: 'brand-intelligence',
+  },
+  'brand-coverage': {
+    id: 'brand-coverage',
+    title: 'Assessment coverage',
+    summary: 'The share of the weighted rubric that could be scored from the text and sources you actually have.',
+    formula: 'coverage = scored weight ÷ total rubric weight',
+    limitation: 'A missing narrative lowers coverage. It does not become a zero for those factors.',
+    article: 'brand-intelligence',
+  },
+  'brand-risk': {
+    id: 'brand-risk',
+    title: 'Collision and risk findings',
+    summary: 'Separate records of name or ticker matches and severity. Higher severity lowers the quality score.',
+    formula: 'quality = 10 − severity, for risk factors that are scored',
+    limitation: 'The bundled list and any live directory that responded are the scope. No match is not a trademark clearance.',
+    article: 'brand-intelligence',
+  },
 };
 
 export function glossaryEntry(id: string) {

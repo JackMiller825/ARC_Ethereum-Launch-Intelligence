@@ -1,3 +1,7 @@
+import { CATEGORY_META, CRITERIA } from '../brand/rubric';
+import { DEFAULT_WEIGHTS } from '../brand/profiles';
+import { RUBRIC_VERSION } from '../brand/types';
+
 export type Availability = 'available' | 'limited' | 'planned';
 
 export type ArticleSection = { heading: string; body: string[] };
@@ -17,6 +21,33 @@ export type Article = {
 const UPDATED = '2026-10-18';
 const SISH = '0xe6f94f305ce2a00219fd4d476aa79f37304ffe8b';
 
+function brandArticle(): Article {
+  const weightLine = Object.entries(DEFAULT_WEIGHTS).map(([id, weight]) => `${id} ${weight}%`).join(', ');
+  const sections: ArticleSection[] = [
+    { heading: 'What Brand Intelligence does', body: [`It scores a name and ticker with rubric ${RUBRIC_VERSION}. A contract is optional. An existing token can be read from ERC-20 name() and symbol(). A future name is a proposal, not a launched token. The score is not added to buy, sell, liquidity, or bot volume, and it is not a prediction of price or buyers.`] },
+    { heading: 'Existing versus future tokens', body: ['Existing mode requires a valid address and uses the contract metadata. If that read fails, ARC does not substitute another token with the same ticker. Future mode needs no address and does not invent holders or volume. Historical mode keeps an earlier name without using later trading success to raise the score.'] },
+    { heading: 'Scoring and coverage', body: [`Category weights start at ${weightLine}. They always rescale to 100. A factor without enough input is insufficient or unknown, not zero. The overall score is hidden below 40% coverage. Labels from Exceptional to Needs improvement are rubric words, not odds of success.`] },
+    { heading: 'Collisions and research', body: ['The bundled list is a short public reference, not a global registry. DexScreener and CoinGecko are queried from the browser when they respond. Domain, trademark, and web search are not configured, so those sources stay unavailable. A duplicate ticker is common and is not labeled fraud. No hit is not a clearance. Trademark flags are not legal advice.'] },
+    { heading: 'Comparisons and improvements', body: ['Compare accepts 2 to 20 lines of Name | Ticker. The same rubric and weights are used. Changing a profile rescores the editorial result and does not rewrite collision rows. Alternatives explain what changed. The original name stays until you choose a replacement. Suggestions are not guaranteed to be unused.'] },
+    { heading: 'Exports and troubleshooting', body: ['JSON, CSV, and printer-friendly HTML include the rubric version, weights, factors, collisions, and limitations. There is no PDF. If live research fails, the editorial score from the bundled list still stands and uniqueness stays unknown. Saved records are in this browser’s IndexedDB.'] },
+    ...CATEGORY_META.map((category) => ({
+      heading: category.title,
+      body: [category.summary, ...CRITERIA.filter((item) => item.categoryId === category.id).map((item) => `${item.title} (${item.id}). ${item.explanation} ${item.rubric}`)],
+    })),
+  ];
+  return {
+    id: 'brand-intelligence',
+    title: 'Name and ticker intelligence',
+    category: 'Name & Ticker Intelligence',
+    description: 'How the 100-factor rubric, coverage, and collision records work, and what they do not prove.',
+    keywords: ['brand', 'ticker', 'name', 'collision', 'rubric', 'coverage', 'mascot'],
+    related: ['token-analyzer', 'launch-planner', 'token-history', 'faq'],
+    updated: UPDATED,
+    availability: 'available',
+    sections,
+  };
+}
+
 export const CATEGORIES = [
   'Getting Started',
   'Token Analyzer',
@@ -30,6 +61,7 @@ export const CATEGORIES = [
   'RPC & Connectivity',
   'Troubleshooting',
   'Frequently Asked Questions',
+  'Name & Ticker Intelligence',
 ] as const;
 
 export const ARTICLES: Article[] = [
@@ -265,6 +297,7 @@ export const ARTICLES: Article[] = [
       { heading: 'How do I report a bug?', body: ['Use the GitHub repository issues for JackMiller825/ARC_Ethereum-Launch-Intelligence. Include the contract, the interval, the commit from Settings, and the indexer warning text. Do not include keys or seed phrases.'] },
     ],
   },
+  brandArticle(),
 ];
 
 export function articleById(id: string) {

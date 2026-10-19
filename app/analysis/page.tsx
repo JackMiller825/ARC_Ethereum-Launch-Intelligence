@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Activity, ArrowRight, Bot, Copy, ExternalLink, ShieldCheck, TrendingUp, Wallet } from '@/components/icons';
+import { BrandEmbed } from '@/components/brand-report';
 import { IndexingProgress } from '@/components/indexing-progress';
 import { LiveMonitor } from '@/components/monitor';
 import { DemoBadge, ExportButton, ExportJson, MetricTile, PageHeading, Pill, TradeTable, TrendChart, WindowControls } from '@/components/ui';
@@ -27,7 +28,7 @@ function Analyzer() {
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [localError, setLocalError] = useState('');
-  const [tab, setTab] = useState<'overview' | 'transactions' | 'liquidity' | 'wallets' | 'bots' | 'contract' | 'quality'>('overview');
+  const [tab, setTab] = useState<'overview' | 'transactions' | 'liquidity' | 'wallets' | 'bots' | 'contract' | 'quality' | 'brand'>('overview');
   const minutes = interval === 'custom' ? custom : durations[interval];
   const viewing = active && ca && active.token.address.toLowerCase() === ca.toLowerCase() ? active : null;
   const demoTrades = settings.demoMode && !viewing ? selectTrades(minutes) : [];
@@ -74,8 +75,9 @@ function Analyzer() {
     <LiveMonitor />
     <WindowControls interval={interval} setInterval={setInterval} custom={custom} setCustom={setCustom} mode={mode} setMode={setMode} />
     {mode === 'absolute' && <div className="parameter-grid" style={{ marginBottom: 16 }}><label>Start (converted to UTC)<div className="input-with-unit"><input aria-label="Window start" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} /></div></label><label>End (converted to UTC)<div className="input-with-unit"><input aria-label="Window end" type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} /></div></label></div>}
-    <div className="tabs" role="tablist" aria-label="Analysis sections">{(['overview', 'transactions', 'liquidity', 'wallets', 'bots', 'contract', 'quality'] as const).map((item) => <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? 'selected' : ''} onClick={() => setTab(item)}>{item === 'bots' ? 'Bot Activity' : item === 'quality' ? 'Data Quality' : item[0].toUpperCase() + item.slice(1)}</button>)}</div>
+    <div className="tabs" role="tablist" aria-label="Analysis sections">{(['overview', 'transactions', 'liquidity', 'wallets', 'bots', 'contract', 'quality', 'brand'] as const).map((item) => <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? 'selected' : ''} onClick={() => setTab(item)}>{item === 'bots' ? 'Bot Activity' : item === 'quality' ? 'Data Quality' : item === 'brand' ? 'Brand' : item[0].toUpperCase() + item.slice(1)}</button>)}</div>
     {progress && <IndexingProgress progress={progress} onCancel={cancel} />}
+    {tab === 'brand' && (viewing ? <BrandEmbed name={viewing.token.name} ticker={viewing.token.symbol} address={viewing.token.address} source={viewing.token.source === 'chain' ? 'ERC-20 name() and symbol()' : 'Blockscout + chain'} auto={settings.brandAuto} /> : <section className="panel"><h3>Brand is separate from the ledger</h3><p className="panel-desc">Index a token to score its on-chain name, or open Name &amp; Ticker Analyzer with no contract. The rubric is not added to buy, sell, wallet, or bot totals.</p></section>)}
     {(tab === 'overview' || tab === 'bots') && flow && <div className="metrics-grid"><MetricTile hint={KPI_HINTS.confirmed} label="HIGH-EVIDENCE BUY" value={`${formatEth(flow.confirmedBuyWei)} ETH`} sub="Confirmed pattern volume" icon={ShieldCheck} tone="green" /><MetricTile hint={KPI_HINTS.heuristic} label="MEDIUM-EVIDENCE BUY" value={`${formatEth(flow.heuristicBuyWei)} ETH`} sub="Heuristic, still in the automated total" icon={Bot} tone="blue" /><MetricTile hint={KPI_HINTS.unclassified} label="UNCLASSIFIED BUY" value={`${formatEth(flow.unclassifiedBuyWei)} ETH`} sub={`${flow.unvaluedBuys} buys have no ETH value`} icon={Activity} /><MetricTile hint={KPI_HINTS.net} label="BOT NET FLOW" value={`${formatEth(flow.botNetWei)} ETH`} sub={`Early exits ≤5m: ${flow.earlyExitBuyers.within5m}`} icon={Wallet} tone="red" /></div>}
     {(tab === 'overview' || tab === 'liquidity') && depth && <div className="metrics-grid"><MetricTile label="FIRST MINUTE" value={`${formatEth(depth.firstMinuteBuyWei)} ETH`} sub="Valued buys with minute index 0" icon={Activity} /><MetricTile label="FIRST 5 MINUTES" value={`${formatEth(depth.firstFiveMinuteBuyWei)} ETH`} sub="Valued buys before minute 5" icon={TrendingUp} tone="green" /><MetricTile label="REPEAT BUYERS" value={String(depth.returningBuyers)} sub={`${depth.firstTimeBuyers} single-buy signers in this window`} icon={Wallet} /><MetricTile label="MEDIAN BUY" value={depth.medianBuyWei ? `${formatEth(depth.medianBuyWei)} ETH` : '—'} sub={depth.timeToFirstBuySeconds === null ? 'T0 gap unavailable' : `${depth.timeToFirstBuySeconds}s from T0 to first buy`} icon={Bot} tone="blue" /></div>}
     {tab === 'overview' && <div className="metrics-grid">
