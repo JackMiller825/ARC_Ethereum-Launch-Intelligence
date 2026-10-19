@@ -1,15 +1,12 @@
-# Visual inspection
+# UI visual regression
 
-No screenshot baseline existed before this redesign, and Playwright was not added. These notes are from the browser session on 18 October 2026, not from a pixel diff.
+Playwright is not a dependency of this repository, and a browser binary was not installed for this pass. Screenshot baselines at 1920, 1440, 1280, 1024, 768, 390, and 375 were not captured. This check is not a pass.
 
-## Desktop
+What was checked instead:
 
-The sidebar is dark navy with a violet active pill. Overview cards use a small lower-left violet wash, circular icons, and em dashes when nothing is indexed. The analyzer hero is a two-column panel at 1440px: copy and search on the left, the ARC core diagram on the right. Node buttons sit on the line endpoints. The live-tail copy still says a closed tab is not 24/7 monitoring.
+- HTTP 200 for the ten production routes on commit `9820331`.
+- Asset paths were `/_next/…`.
+- `npx tsc --noEmit --incremental false` passed after the UI edits.
+- `npm test` passed 59 tests and skipped 3 live RPC tests.
 
-## Narrow
-
-At 390px the sidebar is off-canvas, the menu button is visible, and the page column does not scroll sideways. The top bar wraps the network pill and settings control. Interval buttons wrap onto extra rows. Tables remain in their own scroll areas.
-
-## Known visual limits
-
-The intelligence diagram is SVG plus HTML pills. On a short hero it can sit under the search instead of beside it. The scan ring is the only looping motion. Strategy cards share one violet treatment rather than eight unrelated color systems. Screenshot files were reviewed in the browser and were not committed as regression images.
+Horizontal overflow, open menus, and mobile sidebar collisions were not measured with screenshots in this pass.

@@ -10,7 +10,7 @@
     "note": "Reviewed with the token-neutral empty start."
   },
   "brand": {
-    "hash": "493210f175bff2eb915b20d1903b5d37d58143bd58e204c0ec6458ef586b2e87",
+    "hash": "dfffeeb4b53e5fc555294b7e93d93b3ca5e2eb612194584f17d874c22646bd41",
     "decision": "updated",
     "note": "Reviewed with the token-neutral empty start."
   },
@@ -30,22 +30,22 @@
     "note": "Reviewed with the token-neutral empty start."
   },
   "history": {
-    "hash": "6bfaea42bb29b6153778cc46618bcc684f5451c39f95de7fece13d11db745e0a",
+    "hash": "7a8411f081c97d4312a305bc36c1dbf0d848951c7afc202ad517a497eead5cbd",
     "decision": "updated",
     "note": "Reviewed with the token-neutral empty start."
   },
   "settings": {
-    "hash": "1193876dae3814faed745dcb2ecd7c2b633d606217879f6bdd0a3c22ecdbc935",
+    "hash": "a562232979228617525da018ea73157e5e2c61d22c5cec768bb3ef8c00b01497",
     "decision": "updated",
     "note": "Reviewed with the token-neutral empty start."
   },
   "help": {
-    "hash": "00f0de0e1e1c46c649d91dd441038a63456b0fd21780fd74d3f7e1d5a6e747cb",
+    "hash": "fd800f58d596e2db90e27501690a1d3a0432f493ee415ea191a4e6918f3cebe0",
     "decision": "updated",
     "note": "Reviewed with the token-neutral empty start."
   },
   "intervals": {
-    "hash": "113f2a6e03dd7f2dca5ab0ae97c9a0eee73fa69b4709e99292412fc6a71f3793",
+    "hash": "19c07ae63e76d222fa09ce5f41d7ba44b910a4d8591b3a46dcd957c77e2ecbdf",
     "decision": "updated",
     "note": "Reviewed with the token-neutral empty start."
   },
@@ -55,7 +55,7 @@
     "note": "Reviewed with the token-neutral empty start."
   },
   "laboratory": {
-    "hash": "49811fcdf9ca8c9982f8191ef96336796ee363a89aab7a790b75e88ff6016d59",
+    "hash": "c6ebe068a1e1ca4f26cce88f24007b6765d861a60234f280e7bf999e8f159c95",
     "decision": "updated",
     "note": "Reviewed with the token-neutral empty start."
   },
@@ -65,7 +65,7 @@
     "note": "Reviewed with the token-neutral empty start."
   },
   "docs": {
-    "hash": "d84f4a96ac367985d501c3705efd8ed36b1ac997b310de43cee981f5993a8246",
+    "hash": "c3536b01c7e33a941dc1cbf9db8e5cdf3bc389999964d21915e4b02d40df6c09",
     "decision": "updated",
     "note": "Reviewed with the token-neutral empty start."
   }

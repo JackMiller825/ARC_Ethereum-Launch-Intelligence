@@ -19,6 +19,6 @@ Reviewed 2026-10-19. Each row is a feature in `lib/features/registry.ts`.
 | Research Assistant | `/analysis` | limited | research-assistant |
 | Documentation Coverage | `/help` | available | documentation-coverage |
 
-Glossary ids cited by those features resolve in `lib/help/glossary.ts`. The brand article covers existing-token, future-token, comparison, coverage, collisions, and suggestions. It states that the form starts empty.
+Glossary ids cited by those features resolve in `lib/help/glossary.ts`, including `recognition`. The brand article covers existing-token, future-token, comparison of up to 20 candidates, coverage, collisions, suggestions, and the recognition workspace. The form starts empty.
 
-Intervals, bots, wallets, and the planner were not behavior-changed in this pass beyond the empty-start copy, so their articles stay as previously published except where a sample contract was removed.
+`tests/research.test.ts` requires documentation coverage of 100% under the formula in `lib/features/coverage.ts`. The Help home and Data & Settings both render that panel. A missing tour is listed and does not change the percentage.

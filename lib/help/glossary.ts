@@ -117,7 +117,7 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     title: 'Launch replay',
     summary: 'Playback of swaps already stored for one saved token, in block order.',
     formula: 'cursor walks the stored trade list; no row is synthesized',
-    limitation: 'A minute with no valued swap is omitted. That omission is not a measured zero when coverage is provisional.',
+    limitation: 'A minute with no valued swap is omitted. Playback speed changes the cursor interval only. Seek does not invent the trades between stored rows.',
     article: 'launch-laboratory',
   },
   simulation: {
@@ -127,6 +127,14 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     formula: 'amountOut = amountInWithFee × reserveOut ÷ (reserveIn × 10000 + amountInWithFee), fee 30 bps unless stated',
     limitation: 'This is not recorded market history. V3 and V4 concentrated liquidity are not simulated with this curve.',
     article: 'launch-laboratory',
+  },
+  recognition: {
+    id: 'recognition',
+    title: 'Recognition response',
+    summary: 'A name, ticker, and meaning typed after a five-second exposure that a person consented to.',
+    formula: 'exact name = matching trimmed responses ÷ completed responses; ticker and meaning are counted separately',
+    limitation: 'Empty storage has no rate. A small sample is not a significance claim. Imported CSV rows stay labeled imported. This browser is not a multi-person study.',
+    article: 'brand-intelligence',
   },
   readiness: {
     id: 'readiness',

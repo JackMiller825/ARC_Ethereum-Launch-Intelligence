@@ -20,6 +20,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Documentation review
+        run: npx vitest run tests/neutrality.test.ts tests/research.test.ts tests/platform.test.ts
       - run: npm test
       - run: npm run build:pages
       - uses: actions/upload-pages-artifact@v3

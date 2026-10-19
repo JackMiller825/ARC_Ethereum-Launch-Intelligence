@@ -451,3 +451,27 @@ mark { background: rgba(192, 132, 252, 0.35); color: white; border-radius: 3px; 
 .palette input, .palette button { width: 100%; text-align: left; }
 .palette button { background: transparent; color: inherit; border: 0; padding: 8px 10px; border-radius: 8px; }
 .palette button:hover { background: rgba(139, 92, 246, .22); }
+:focus-visible { outline: 2px solid var(--violet-bright); outline-offset: 2px; }
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.metric-grid .metric-tile { display: grid; gap: 6px; }
+.metric-grid .metric-tile span { color: var(--secondary); font-size: 12px; }
+.pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0 0; padding: 16px 0 0; border-top: 1px solid var(--line); }
+.pager p { margin: 0; color: var(--secondary); }
+.pager-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pager button, .pager select { min-width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--raised); color: var(--text); padding: 0 10px; }
+.pager button[aria-current="page"] { background: var(--violet); border-color: transparent; color: white; }
+.pager button:disabled { opacity: .45; }
+.btn.selected { box-shadow: inset 0 0 0 1px var(--violet-bright); }
+.marker { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.marker-first-swap { background: var(--violet-bright); }
+.marker-buy, .marker-large-buy { background: var(--buy); }
+.marker-sell, .marker-large-sell { background: var(--sell); }
+.marker-liquidity { background: var(--warn); }
+.marker-gap { background: var(--muted); }
+.marker-bot-cluster { background: var(--lavender); }
+.recognition-stimulus { display: grid; gap: 6px; min-height: 88px; place-items: center; font-size: 28px; }
+.intervals { margin-bottom: 12px; }
+@media (max-width: 720px) {
+  .pager { align-items: stretch; }
+  .pager-controls { width: 100%; }
+}

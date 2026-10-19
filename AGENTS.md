@@ -37,3 +37,7 @@ Run the typecheck and `npm test`. Do not call the task done until the affected H
 5. Preserve existing working features and saved IndexedDB records.
 6. Verify a claim of completion by running the check. A skipped live test is not a pass.
 7. Document an external dependency that is not configured, including a model provider and the Pages worker, as unavailable.
+8. Replay only stored chain events. Do not interpolate missing trades or change their timestamps when playback speed changes.
+9. Recognition rates come only from saved or imported responses. Do not generate participants.
+10. Keep editorial brand scores separate from collision records and from recognition rates.
+11. Publish to `main` so GitHub Pages updates https://analyze-research-capital.site/ from the domain root. `public/CNAME` must stay `analyze-research-capital.site`.

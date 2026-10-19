@@ -4,7 +4,7 @@ import type { AnalysisSuccess, AppSettings, LibraryCatalog, Playbook, WalletLabe
 import { DEFAULT_RPCS } from '../chain/constants';
 
 const DB_NAME = 'arc-launch-intelligence';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 export const defaultSettings: AppSettings = {
   rpcUrls: [],
@@ -48,7 +48,7 @@ function openDb() {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      for (const name of ['snapshots', 'playbooks', 'settings', 'labels', 'checkpoints', 'catalog', 'brandAnalyses', 'brandComparisons', 'notes', 'recalls', 'alerts']) {
+      for (const name of ['snapshots', 'playbooks', 'settings', 'labels', 'checkpoints', 'catalog', 'brandAnalyses', 'brandComparisons', 'notes', 'recalls', 'alerts', 'recognition']) {
         if (!db.objectStoreNames.contains(name)) db.createObjectStore(name);
       }
     };
@@ -200,4 +200,25 @@ export async function loadAlertLog() {
 
 export async function saveAlertLog(alerts: import('../analytics/alerts').ResearchAlert[]) {
   await write('alerts', 'log', alerts.slice(-100));
+}
+
+export async function listRecognition() {
+  const ids = await keys('recognition');
+  const rows = await Promise.all(ids.map((id) => read<import('../brand/recognition').RecognitionRecord>('recognition', id)));
+  return rows.filter((row): row is import('../brand/recognition').RecognitionRecord => Boolean(row));
+}
+
+export async function saveRecognition(record: import('../brand/recognition').RecognitionRecord) {
+  await write('recognition', record.id, record);
+}
+
+export async function clearRecognition() {
+  const db = await openDb();
+  if (!db.objectStoreNames.contains('recognition')) return;
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('recognition', 'readwrite');
+    tx.objectStore('recognition').clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
 }

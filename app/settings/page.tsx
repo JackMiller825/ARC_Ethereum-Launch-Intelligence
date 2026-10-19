@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { ShieldCheck } from '@/components/icons';
 import { PageHeading, Pill } from '@/components/ui';
+import { CoveragePanel } from '@/components/coverage-panel';
 import { useWorkspace } from '@/components/workspace';
 import { versionMismatch } from '@/lib/analytics/version-check';
 import { BASE_PATH, BUILD_TIME, COMMIT_SHA, PACKAGE_VERSION, shortSha } from '@/lib/build-info';
@@ -55,7 +56,8 @@ export default function Settings() {
         <label className="stack-label">Sell threshold (ETH)<div className="input-with-unit"><input aria-label="Sell alert threshold" type="number" min="0" step="0.1" value={settings.alertSellEth} onChange={(event) => updateSettings({ ...settings, alertSellEth: Math.max(0, Number(event.target.value) || 0) })} /></div></label>
         <label className="stack-label">Coverage floor (%)<div className="input-with-unit"><input aria-label="Coverage floor" type="number" min="0" max="100" value={settings.coverageFloor} onChange={(event) => updateSettings({ ...settings, coverageFloor: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })} /></div></label>
       </section>
-      <section className="panel"><div className="panel-eyebrow">LOCAL ARCHIVE</div><h3>Workspace storage</h3><p className="panel-desc">Saved snapshots, the playbook, RPC URLs, and wallet labels live in this browser. Clearing them does not touch mainnet. A configured Postgres worker is a separate process and is not running on GitHub Pages.</p><button className="btn secondary" type="button" onClick={() => reset()}>Clear local history</button></section>
+      <section className="panel"><div className="panel-eyebrow">LOCAL ARCHIVE</div><h3>Workspace storage</h3><p className="panel-desc">Saved snapshots, the playbook, RPC URLs, and wallet labels live in this browser. Clearing them does not touch mainnet and does not delete notes or recognition responses. A configured Postgres worker is a separate process and is not running on GitHub Pages.</p><button className="btn secondary" type="button" onClick={() => { if (window.confirm('Clear saved snapshots and the playbook in this browser?')) reset(); }}>Clear local history</button></section>
     </div>
+    <CoveragePanel />
   </>;
 }

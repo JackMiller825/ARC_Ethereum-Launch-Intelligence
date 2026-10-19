@@ -1,9 +1,11 @@
 "use client";
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { PremiumPagination } from './premium-pagination';
 import { HelpTip } from './help-tip';
 import { Clock3, Download } from './icons';
 import { shortAddr } from '@/lib/format';
+import { pageSlice } from '@/lib/ui/pagination';
 import { durations, INTERVALS, MAX_MINUTES } from '@/lib/intervals';
 import type { Confidence, Interval, Trade, WindowMode } from '@/lib/types';
 
@@ -56,12 +58,12 @@ export function TrendChart({ trades, label = 'Cumulative buy and sell volume' }:
 }
 const bar: Record<Confidence, number> = { HIGH: 100, MEDIUM: 66, LOW: 33, UNKNOWN: 8 };
 export function TradeTable({ trades }: { trades: Trade[] }) {
-  const [start, setStart] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [side, setSide] = useState<'ALL' | 'BUY' | 'SELL'>('ALL');
   const filtered = trades.filter((trade) => side === 'ALL' || trade.side === side);
-  const windowSize = 24;
-  const rows = filtered.slice(start, start + windowSize);
-  return <div><div className="intervals" role="group" aria-label="Trade side filter" style={{ marginBottom: 10 }}>{(['ALL', 'BUY', 'SELL'] as const).map((item) => <button key={item} type="button" className={side === item ? 'selected' : ''} onClick={() => { setSide(item); setStart(0); }}>{item}</button>)}</div><div className="table-scroll virtual-table" onScroll={(event) => setStart(Math.min(Math.max(0, filtered.length - windowSize), Math.floor(event.currentTarget.scrollTop / 52)))}><table className="data-table"><caption className="sr-only">Swap ledger with signer, side, evidence class and ETH</caption><thead><tr><th>WALLET / ACTOR</th><th>TYPE</th><th>CLASSIFICATION</th><th>ETH</th><th>EVIDENCE</th><th>TIME</th></tr></thead><tbody>{rows.length === 0 && <tr><td colSpan={6}>No qualifying swaps were found in the selected interval.</td></tr>}{rows.map((t) => <tr key={t.id}><td className="mono"><a href={`https://etherscan.io/address/${t.wallet}`} target="_blank" rel="noreferrer">{shortAddr(t.wallet)}</a> {t.isProject && <Pill kind="amber">PROJECT</Pill>}</td><td><span className={t.side === 'BUY' ? 'buy-label' : 'sell-label'}>{t.side === 'BUY' ? '↗' : '↘'} {t.side}</span></td><td>{t.classification}</td><td className="number">{t.eth === null ? '—' : t.eth.toFixed(4)}</td><td><div className="confidence" title={t.evidence.join(' ')}><div className="confidence-track"><div style={{ width: `${bar[t.confidence] || t.score}%` }} /></div>{t.confidence}</div></td><td className="mono muted"><a href={`https://etherscan.io/tx/${t.txHash}`} target="_blank" rel="noreferrer">{t.timestamp ? new Date(t.timestamp * 1000).toISOString().slice(11, 19) : `+${t.minute}m`}</a></td></tr>)}</tbody></table>{filtered.length > 0 && <p className="panel-desc">Showing {start + 1}–{start + rows.length} of {filtered.length}. Scroll the table to move the window.</p>}</div></div>;
+  const windowed = pageSlice(filtered, page, pageSize);
+  return <div><div className="intervals" role="group" aria-label="Trade side filter">{(['ALL', 'BUY', 'SELL'] as const).map((item) => <button key={item} type="button" className={side === item ? 'selected' : ''} onClick={() => { setSide(item); setPage(1); }}>{item}</button>)}</div>{filtered.length === 0 ? <div className="data-boundary"><div><strong>No qualifying swaps were found in the selected interval.</strong><p>Change the side filter or index a window that contains valued swaps.</p></div></div> : <div className="table-scroll"><table className="data-table"><caption className="sr-only">Swap ledger with signer, side, evidence class and ETH</caption><thead><tr><th>WALLET / ACTOR</th><th>TYPE</th><th>CLASSIFICATION</th><th>ETH</th><th>EVIDENCE</th><th>TIME</th></tr></thead><tbody>{windowed.rows.map((t) => <tr key={t.id}><td className="mono"><a href={`https://etherscan.io/address/${t.wallet}`} target="_blank" rel="noreferrer">{shortAddr(t.wallet)}</a> {t.isProject && <Pill kind="amber">PROJECT</Pill>}</td><td><span className={t.side === 'BUY' ? 'buy-label' : 'sell-label'}>{t.side === 'BUY' ? '↗' : '↘'} {t.side}</span></td><td>{t.classification}</td><td className="number">{t.eth === null ? '—' : t.eth.toFixed(4)}</td><td><div className="confidence" title={t.evidence.join(' ')}><div className="confidence-track"><div style={{ width: `${bar[t.confidence] || t.score}%` }} /></div>{t.confidence}</div></td><td className="mono muted"><a href={`https://etherscan.io/tx/${t.txHash}`} target="_blank" rel="noreferrer">{t.timestamp ? new Date(t.timestamp * 1000).toISOString().slice(11, 19) : `+${t.minute}m`}</a></td></tr>)}</tbody></table><PremiumPagination page={windowed.current} pageSize={pageSize} total={filtered.length} onPage={setPage} onPageSize={(size) => { setPageSize(size); setPage(1); }} /></div>}</div>;
 }
 export function ExportButton({ trades, filename = 'arc-trades.csv' }: { trades: Trade[]; filename?: string }) {
   function download() {
